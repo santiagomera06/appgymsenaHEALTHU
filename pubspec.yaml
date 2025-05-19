@@ -31,8 +31,16 @@ dependencies:
   flutter:
     sdk: flutter
 
-  # The following adds the Cupertino Icons font to your application.
-  # Use with the CupertinoIcons class for iOS style icons.
+  # ——— Paquete de fuentes de Google ———
+  google_fonts: ^5.0.0
+
+  # ——— Internacionalización de fechas ———
+  intl: ^0.18.0
+
+  # ——— Gráficas ———
+  fl_chart: ^0.60.0
+
+  # ——— Otras dependencias ———
   cupertino_icons: ^1.0.8
   shared_preferences: ^2.2.2
 
@@ -88,3 +96,8 @@ flutter:
   #
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/to/font-from-package
+dependency_overrides:
+  fl_chart:
+    git:
+      url: https://github.com/imaNNeoFighT/fl_chart.git
+      ref: main

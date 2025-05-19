@@ -1,3 +1,4 @@
+//la barra de navegacion se incluyo en  home
 import 'package:flutter/material.dart';
 import 'package:healthu/models/desafio_model.dart';
 import 'package:healthu/routes/desafios_routes.dart';
@@ -25,7 +26,7 @@ class _DesafiosScreenState extends State<DesafiosScreen> {
   }
 
   Future<void> _cargarDesafios() async {
-    final desafiosBase = [
+    final desafiosBase = <Desafio>[
       Desafio(
         id: '1',
         nombre: 'Desafio 1',
@@ -76,10 +77,9 @@ class _DesafiosScreenState extends State<DesafiosScreen> {
       ),
     ];
 
-    final desafiosCargados = await DesafiosRoutes.cargarProgresoDesafios(desafiosBase);
-    
+    final cargos = await DesafiosRoutes.cargarProgresoDesafios(desafiosBase);
     setState(() {
-      desafios = desafiosCargados;
+      desafios = cargos;
       isLoading = false;
     });
   }
@@ -89,10 +89,13 @@ class _DesafiosScreenState extends State<DesafiosScreen> {
     if (index == -1) return;
 
     setState(() {
+      // marcar completado
       desafios[index] = desafios[index].copyWith(completado: true);
-      
+
+      // desbloquear siguiente
       if (index + 1 < desafios.length) {
-        desafios[index + 1] = desafios[index + 1].copyWith(desbloqueado: true);
+        desafios[index + 1] =
+            desafios[index + 1].copyWith(desbloqueado: true);
       }
     });
 
@@ -100,17 +103,14 @@ class _DesafiosScreenState extends State<DesafiosScreen> {
 
     if (desafios.every((d) => d.completado)) {
       _mostrarMensaje('¡Felicidades! Has completado todos los desafíos.');
-    } else if (index + 1 < desafios.length) {
+    } else {
       _mostrarMensaje('¡Desafío completado! Puedes continuar con el siguiente.');
     }
   }
 
   void _mostrarMensaje(String mensaje) {
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(mensaje),
-        duration: const Duration(seconds: 3),
-      ),
+      SnackBar(content: Text(mensaje), duration: const Duration(seconds: 3)),
     );
   }
 
@@ -118,9 +118,7 @@ class _DesafiosScreenState extends State<DesafiosScreen> {
   Widget build(BuildContext context) {
     if (isLoading) {
       return const Scaffold(
-        body: Center(
-          child: CircularProgressIndicator(),
-        ),
+        body: Center(child: CircularProgressIndicator()),
       );
     }
 
@@ -144,8 +142,10 @@ class _DesafiosScreenState extends State<DesafiosScreen> {
             const Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                
-                Text('Santiago mera', style: TextStyle(fontSize: 16, color: Colors.black),),
+                Text(
+                  'Santiago Mera',
+                  style: TextStyle(fontSize: 16, color: Colors.black),
+                ),
               ],
             ),
           ],
@@ -157,18 +157,18 @@ class _DesafiosScreenState extends State<DesafiosScreen> {
             onPressed: () {
               showModalBottomSheet(
                 context: context,
-                builder: (context) => Column(
+                builder: (ctx) => Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     ListTile(
                       leading: const Icon(Icons.settings),
                       title: const Text('Configuración'),
-                      onTap: () => Navigator.pop(context),
+                      onTap: () => Navigator.pop(ctx),
                     ),
                     ListTile(
                       leading: const Icon(Icons.exit_to_app),
                       title: const Text('Cerrar sesión'),
-                      onTap: () => Navigator.pop(context),
+                      onTap: () => Navigator.pop(ctx),
                     ),
                   ],
                 ),
@@ -184,7 +184,7 @@ class _DesafiosScreenState extends State<DesafiosScreen> {
             _buildPuntuacionYObjetivoRow(),
             const SizedBox(height: 20),
             const Text(
-              'Desafios Sena Healthu',
+              'Desafíos Sena Healthu',
               style: DesafiosStyles.titulo,
             ),
             const SizedBox(height: 15),
@@ -194,50 +194,16 @@ class _DesafiosScreenState extends State<DesafiosScreen> {
           ],
         ),
       ),
-      bottomNavigationBar: _buildBottomNavBar(),
+      // ¡Sin bottomNavigationBar aquí!
     );
-  }
-
-  Widget _buildMensajeProgreso() {
-    if (desafios.every((d) => d.completado)) {
-      return const Text(
-        '¡Has completado todos los desafíos!',
-        style: TextStyle(
-          fontSize: 16,
-          fontWeight: FontWeight.bold,
-          color: Colors.green,
-        ),
-      );
-    }
-
-    final primerDesafioNoCompletado = desafios.firstWhere(
-      (d) => !d.completado,
-      orElse: () => desafios.first,
-    );
-
-    if (!primerDesafioNoCompletado.desbloqueado) {
-      return const Text(
-        'Comienza por el primer desafío para desbloquear los siguientes.',
-        style: TextStyle(
-          fontSize: 16,
-          color: Colors.orange,
-        ),
-      );
-    }
-
-    return const SizedBox.shrink();
   }
 
   Widget _buildPuntuacionYObjetivoRow() {
     return Row(
       children: [
-        Expanded(
-          child: _buildPuntuacionCard(),
-        ),
+        Expanded(child: _buildPuntuacionCard()),
         const SizedBox(width: 10),
-        Expanded(
-          child: _buildObjetivoCard(),
-        ),
+        Expanded(child: _buildObjetivoCard()),
       ],
     );
   }
@@ -248,15 +214,10 @@ class _DesafiosScreenState extends State<DesafiosScreen> {
         padding: const EdgeInsets.all(16),
         child: Column(
           children: [
-            const Text(
-              'Puntuacion',
-              style: DesafiosStyles.puntuacionTitulo,
-            ),
+            const Text('Puntuación', style: DesafiosStyles.puntuacionTitulo),
             const SizedBox(height: 10),
-            Text(
-              puntuacionActual.toString(),
-              style: DesafiosStyles.puntuacionValor,
-            ),
+            Text(puntuacionActual.toString(),
+                style: DesafiosStyles.puntuacionValor),
           ],
         ),
       ),
@@ -269,15 +230,9 @@ class _DesafiosScreenState extends State<DesafiosScreen> {
         padding: const EdgeInsets.all(16),
         child: Column(
           children: [
-            const Text(
-              'Objetivo',
-              style: DesafiosStyles.puntuacionTitulo,
-            ),
+            const Text('Objetivo', style: DesafiosStyles.puntuacionTitulo),
             const SizedBox(height: 10),
-            Text(
-              objetivo.toString(),
-              style: DesafiosStyles.puntuacionValor,
-            ),
+            Text(objetivo.toString(), style: DesafiosStyles.puntuacionValor),
           ],
         ),
       ),
@@ -295,49 +250,48 @@ class _DesafiosScreenState extends State<DesafiosScreen> {
         childAspectRatio: 0.9,
       ),
       itemCount: desafios.length,
-      itemBuilder: (context, index) => GestureDetector(
-        onTap: () {
-          if (!desafios[index].desbloqueado) {
-            _mostrarMensaje('Debes completar el desafío anterior para acceder a este.');
-            return;
-          }
-          
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => EjerciciosPrincipianteScreen(
-                nombreDesafio: desafios[index].nombre,
-                desafio: desafios[index],
-                onCompletado: () => _completarDesafio(desafios[index].id),
+      itemBuilder: (context, index) {
+        final d = desafios[index];
+        return GestureDetector(
+          onTap: () {
+            if (!d.desbloqueado) {
+              _mostrarMensaje(
+                  'Debes completar el desafío anterior para acceder a este.');
+              return;
+            }
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (ctx) => EjerciciosPrincipianteScreen(
+                  nombreDesafio: d.nombre,
+                  desafio: d,
+                  onCompletado: () => _completarDesafio(d.id),
+                ),
               ),
-            ),
-          );
-        },
-        child: DesafioCard(desafio: desafios[index]),
-      ),
+            );
+          },
+          child: DesafioCard(desafio: d),
+        );
+      },
     );
   }
 
-  Widget _buildBottomNavBar() {
-    return BottomNavigationBar(
-      items: const [
-        BottomNavigationBarItem(
-          icon: Icon(Icons.school),
-          label: 'Desafíos',
-        ),
-        BottomNavigationBarItem(
-          icon: Icon(Icons.emoji_events),
-          label: 'Clasificación',
-        ),
-        BottomNavigationBarItem(
-          icon: Icon(Icons.person),
-          label: 'Perfil',
-        ),
-      ],
-      currentIndex: 0,
-      selectedItemColor: Colors.white,
-      unselectedItemColor: Colors.white70,
-      backgroundColor: Colors.green[800],
-    );
+  Widget _buildMensajeProgreso() {
+    if (desafios.every((d) => d.completado)) {
+      return const Text(
+        '¡Has completado todos los desafíos!',
+        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.green),
+      );
+    }
+
+    final primerNo = desafios.firstWhere((d) => !d.completado, orElse: () => desafios.first);
+    if (!primerNo.desbloqueado) {
+      return const Text(
+        'Comienza por el primer desafío para desbloquear los siguientes.',
+        style: TextStyle(fontSize: 16, color: Colors.orange),
+      );
+    }
+
+    return const SizedBox.shrink();
   }
 }
