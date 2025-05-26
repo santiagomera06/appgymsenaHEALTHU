@@ -1,18 +1,9 @@
-// lib/screens/ficha_identificacion.dart
-
 import 'package:flutter/material.dart';
-// IMPORTA tu modelo desde lib/models con 'package:'
 import 'package:healthu/models/usuario.dart';
 
-/// Tarjeta con la información principal de un usuario:
-/// foto, nombre, cédula y correo.
 class FichaIdentificacion extends StatelessWidget {
   final Usuario usuario;
-
-  const FichaIdentificacion({
-    super.key,
-    required this.usuario,
-  });
+  const FichaIdentificacion({super.key, required this.usuario});
 
   @override
   Widget build(BuildContext context) {
@@ -23,12 +14,16 @@ class FichaIdentificacion extends StatelessWidget {
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,          // para alinear arriba
           children: [
+            // ▸ Foto (igual que antes)
             CircleAvatar(
               radius: 36,
               backgroundImage: NetworkImage(usuario.fotoUrl),
             ),
             const SizedBox(width: 16),
+
+            // ▸ Datos y etiquetas
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -42,13 +37,29 @@ class FichaIdentificacion extends StatelessWidget {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    'Cédula: ${usuario.id}',
-                    style: const TextStyle(fontSize: 14, color: Colors.grey),
-                  ),
+                    'Ficha de identificación: ${usuario.id}',
+                     style: const TextStyle(fontSize: 14, color: Colors.grey),
+                   ),
+
                   const SizedBox(height: 2),
                   Text(
                     usuario.email,
                     style: const TextStyle(fontSize: 14, color: Colors.grey),
+                  ),
+                  const SizedBox(height: 6),
+
+                  // 🟢 NUEVO nivel actual
+                  Row(
+                    children: [
+                      const Icon(Icons.trending_up,
+                          size: 16, color: Colors.green),
+                      const SizedBox(width: 4),
+                      Text(
+                        'Nivel actual: ${usuario.nivelActual}',
+                        style: const TextStyle(
+                            fontSize: 12, fontWeight: FontWeight.w500),
+                      ),
+                    ],
                   ),
                 ],
               ),
@@ -59,4 +70,3 @@ class FichaIdentificacion extends StatelessWidget {
     );
   }
 }
-

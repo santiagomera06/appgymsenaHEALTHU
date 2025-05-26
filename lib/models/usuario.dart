@@ -1,24 +1,20 @@
-// lib/models/usuario.dart
 
-/// Modelo que representa un usuario en la aplicación
 class Usuario {
-  /// Identificador único (cédula)
-  final String id;
-
-  /// Nombre completo del usuario
+  final String id;         
   final String nombre;
-
-  /// Correo electrónico del usuario
   final String email;
-
-  /// URL de la foto de perfil
   final String fotoUrl;
 
-  /// Constructor
+
+      
+  final String nivelActual; 
+
   const Usuario({
     required this.id,
     required this.nombre,
     required this.email,
     required this.fotoUrl,
+  
+    required this.nivelActual,
   });
 }

@@ -1,5 +1,3 @@
-// lib/widgets/bottom_nav_bar.dart
-
 import 'package:flutter/material.dart';
 
 /// Barra de navegación inferior común a toda la app,

@@ -1,9 +1,5 @@
-// lib/main.dart
-
 import 'package:flutter/material.dart';
 import 'package:intl/date_symbol_data_local.dart';
-
-// Importa siempre con 'package:' o rutas relativas dentro de 'lib/'
 import 'package:healthu/styles/app_theme.dart';
 import 'package:healthu/models/usuario.dart';
 import 'package:healthu/screens/home_screen.dart';
@@ -25,6 +21,7 @@ class MyApp extends StatelessWidget {
       nombre: 'Santiago Mera',
       email: 'santiagomera@example.com',
       fotoUrl: 'https://via.placeholder.com/150',
+      nivelActual: 'Avanzado', 
     );
 
     return MaterialApp(

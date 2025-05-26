@@ -1,13 +1,9 @@
-// lib/screens/home_screen.dart
-
 import 'package:flutter/material.dart';
 import 'package:healthu/models/usuario.dart';
 import 'package:healthu/widgets/bottom_nav_bar.dart';
-
-// Importa tus pantallas con package:
 import 'package:healthu/screens/desafios_screen.dart';
 import 'package:healthu/screens/clasificacion_screen.dart';
-import 'package:healthu/screens/dashboard_screen.dart'; // lo usas como "Perfil"
+import 'package:healthu/screens/dashboard_screen.dart'; 
 
 class HomeScreen extends StatefulWidget {
   final Usuario usuario;
@@ -20,11 +16,11 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   int _selectedIndex = 0;
 
-  // Asegúrate de tener tantas pantallas aquí como ítems en tu BottomNavBar:
+  // barra de navegacion 
   late final List<Widget> _screens = [
-    const DesafiosScreen(),           // índice 0
-    const ClasificacionScreen(),      // índice 1 (vacío por ahora)
-    DashboardScreen(usuario: widget.usuario), // índice 2 = Perfil
+    const DesafiosScreen(),           
+    const ClasificacionScreen(),      
+    DashboardScreen(usuario: widget.usuario), 
   ];
 
   void _onTap(int index) {

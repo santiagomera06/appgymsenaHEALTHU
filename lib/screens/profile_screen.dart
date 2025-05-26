@@ -1,5 +1,3 @@
-// lib/screens/profile_screen.dart
-
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
