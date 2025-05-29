@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 import 'package:healthu/models/usuario.dart';
-// Importa tus widgets desde lib/screens
 import 'package:healthu/screens/ficha_identificacion.dart';
 import 'package:healthu/screens/tarjetas_dashboard.dart';
 import 'package:healthu/screens/graficas_dashboard.dart';
