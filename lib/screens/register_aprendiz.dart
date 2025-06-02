@@ -24,14 +24,14 @@ class _RegisterAprendizState extends State<RegisterAprendiz> {
     "identificacion": TextEditingController(),
     "fechaNacimiento": TextEditingController(),
     "ficha": TextEditingController(),
+    "estatura": TextEditingController(),
+    "peso": TextEditingController(),
     "horasAcumuladas": TextEditingController(text: "0"),
     "puntosAcumulados": TextEditingController(text: "0"),
     "nivelFisico": TextEditingController(),
   };
 
   String? jornadaSeleccionada;
-  double? estaturaSeleccionada;
-  double? pesoSeleccionado;
   File? imagenSeleccionada;
 
   final url = Uri.parse('https://gym-ver2-api-aafaf6c56cad.herokuapp.com/auth/register');
@@ -51,8 +51,6 @@ class _RegisterAprendizState extends State<RegisterAprendiz> {
     final datos = {
       ...campos.map((key, value) => MapEntry(key, value.text)),
       "jornada": jornadaSeleccionada ?? '',
-      "estatura": estaturaSeleccionada ?? 0,
-      "peso": pesoSeleccionado ?? 0,
     };
 
     try {
@@ -105,8 +103,6 @@ class _RegisterAprendizState extends State<RegisterAprendiz> {
   @override
   Widget build(BuildContext context) {
     final jornadas = ['Mañana', 'Tarde', 'Noche'];
-    final estaturas = [for (var i = 140; i <= 220; i++) i / 100];
-    final pesos = [for (var i = 40; i <= 150; i++) i.toDouble()];
 
     return Scaffold(
       backgroundColor: Colors.grey[200],
@@ -148,6 +144,8 @@ class _RegisterAprendizState extends State<RegisterAprendiz> {
                   crearCampo("telefono", Icons.phone),
                   crearCampo("identificacion", Icons.badge),
                   crearCampo("ficha", Icons.book),
+                  crearCampo("estatura", Icons.height),
+                  crearCampo("peso", Icons.monitor_weight),
                   crearCampo("horasAcumuladas", Icons.timer),
                   crearCampo("puntosAcumulados", Icons.stars),
                   crearCampo("nivelFisico", Icons.fitness_center),
@@ -178,26 +176,6 @@ class _RegisterAprendizState extends State<RegisterAprendiz> {
                     value: jornadaSeleccionada,
                     onChanged: (value) => setState(() => jornadaSeleccionada = value),
                     items: jornadas.map((j) => DropdownMenuItem(value: j, child: Text(j))).toList(),
-                  ),
-
-                  const SizedBox(height: 12),
-                  DropdownButtonFormField<double>(
-                    decoration: decoracionCampo("estatura", Icons.height),
-                    value: estaturaSeleccionada,
-                    onChanged: (value) => setState(() => estaturaSeleccionada = value),
-                    items: estaturas
-                        .map((e) => DropdownMenuItem(value: e, child: Text("$e m")))
-                        .toList(),
-                  ),
-
-                  const SizedBox(height: 12),
-                  DropdownButtonFormField<double>(
-                    decoration: decoracionCampo("peso", Icons.monitor_weight),
-                    value: pesoSeleccionado,
-                    onChanged: (value) => setState(() => pesoSeleccionado = value),
-                    items: pesos
-                        .map((p) => DropdownMenuItem(value: p, child: Text("$p kg")))
-                        .toList(),
                   ),
 
                   const SizedBox(height: 24),
