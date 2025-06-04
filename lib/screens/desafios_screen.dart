@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:healthu/models/desafio_model.dart';
 import 'package:healthu/routes/desafios_routes.dart';
+import 'package:healthu/routes/crear_rutina_routes.dart'; // Importa las rutas de creación
 import 'package:healthu/styles/desafios_styles.dart';
 import 'package:healthu/widgets/desafio_card.dart';
 import 'package:healthu/screens/ejercicios_principiante_screen.dart';
@@ -114,6 +115,10 @@ class _DesafiosScreenState extends State<DesafiosScreen> {
     );
   }
 
+  void _navegarACrearRutina() {
+    Navigator.pushNamed(context, CrearRutinaRoutes.crearRutina);
+  }
+
   @override
   Widget build(BuildContext context) {
     if (isLoading) {
@@ -144,14 +149,18 @@ class _DesafiosScreenState extends State<DesafiosScreen> {
             const Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                
-                Text('Santiago mera', style: TextStyle(fontSize: 16, color: Colors.black),),
+                Text('Santiago mera', style: TextStyle(fontSize: 16, color: Colors.black)),
               ],
             ),
           ],
         ),
         centerTitle: false,
         actions: [
+          IconButton(
+            icon: const Icon(Icons.add),
+            onPressed: _navegarACrearRutina, // Botón para crear rutina
+            tooltip: 'Crear nueva rutina',
+          ),
           IconButton(
             icon: const Icon(Icons.more_vert),
             onPressed: () {
@@ -193,6 +202,11 @@ class _DesafiosScreenState extends State<DesafiosScreen> {
             _buildMensajeProgreso(),
           ],
         ),
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: _navegarACrearRutina, // Botón flotante alternativo
+        child: const Icon(Icons.add),
+        backgroundColor: Colors.green[800],
       ),
       bottomNavigationBar: _buildBottomNavBar(),
     );
