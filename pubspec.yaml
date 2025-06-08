@@ -65,7 +65,10 @@ flutter:
   #   - images/a_dot_ham.jpeg
   assets:
   - assets/images/piernas.jpg
-
+  - assets/images/sentadillas.png
+  - assets/images/flexiones.png
+  - assets/images/abdominales.png
+  
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images

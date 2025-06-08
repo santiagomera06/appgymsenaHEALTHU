@@ -49,7 +49,7 @@ class EjerciciosPrincipianteScreen extends StatelessWidget {
   }
 
   List<Map<String, String>> _cargarEjercicios(String nivel, String enfoque) {
-    // Aquí puedes personalizar los ejercicios según el nivel y enfoque
+    // Datos de ejemplo, puedes personalizar por nivel y enfoque
     return [
       {
         'nombre': 'Sentadillas básicas',

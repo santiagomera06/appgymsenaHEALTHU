@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:healthu/routes/desafios_routes.dart';
 import 'package:healthu/routes/crear_rutina_routes.dart';
-import 'package:healthu/screens/crear_rutina_screen.dart';
-import 'package:healthu/screens/desafios_screen.dart';
+import 'package:healthu/routes/ejercicio_routes.dart';
+
+import 'package:healthu/screens/ejercicios_y_desafios_screen.dart';
+import 'package:healthu/screens/seleccionar_nivel_screen.dart';
+import 'package:healthu/screens/ejercicios_principiante_screen.dart';
 
 void main() {
   runApp(const MyApp());
@@ -31,13 +34,23 @@ class MyApp extends StatelessWidget {
       ),
       initialRoute: DesafiosRoutes.desafios,
       routes: {
-        DesafiosRoutes.desafios: (context) => const DesafiosScreen(),
-        CrearRutinaRoutes.crearRutina: (context) => const CrearRutinaScreen(),
+        DesafiosRoutes.desafios: (context) => const EjerciciosYDesafiosScreen(),
+        EjercicioRoutes.seleccionarNivel: (context) => const SeleccionarNivelScreen(),
+        CrearRutinaRoutes.crearRutina: (context) => const Placeholder(),
+
+        // Ruta dinámica para ejercicios por nivel y enfoque
+        EjercicioRoutes.ejerciciosPrincipiante: (context) {
+          final args = ModalRoute.of(context)!.settings.arguments as Map<String, String>;
+          return EjerciciosPrincipianteScreen(
+            nivel: args['nivel']!,
+            enfoque: args['enfoque']!,
+          );
+        },
       },
       onGenerateRoute: (settings) {
         final route = DesafiosRoutes.generateRoute(settings);
         if (route != null) return route;
-        
+
         return MaterialPageRoute(
           builder: (_) => Scaffold(
             body: Center(
