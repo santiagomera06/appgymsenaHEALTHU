@@ -1,4 +1,4 @@
-// lib/screens/dashboard_screen.dart
+
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:healthu/models/usuario.dart';
@@ -9,9 +9,9 @@ import 'ficha_identificacion.dart';
 import 'tarjetas_dashboard.dart';
 import 'graficas_dashboard.dart';
 import 'grafica_anillo.dart';
-import 'editar_usuario_screen.dart';   // ← NUEVO
+import 'editar_usuario_screen.dart';  
 
-// 1️⃣  Ahora es StatefulWidget
+
 class DashboardScreen extends StatefulWidget {
   final Usuario usuario;
   const DashboardScreen({super.key, required this.usuario});
@@ -26,12 +26,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
   @override
   void initState() {
     super.initState();
-    usuario = widget.usuario;     // copia inicial para poder mutar
+    usuario = widget.usuario;     
   }
 
   @override
   Widget build(BuildContext context) {
-    // ─── Fecha y saludo ───
+ 
     final fechaHoy = DateFormat('EEEE d MMMM', 'es').format(DateTime.now());
     final hora = DateTime.now().hour;
     final saludo = (hora < 12)
@@ -40,7 +40,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             ? '¡Buenas tardes!'
             : '¡Buenas noches!';
 
-    // ─── Datos demo ───
+
     final datosSemana = <double>[2, 3, 1, 4, 5, 2, 0];
 
     final actividades = <PieSectionDataModel>[
@@ -90,7 +90,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         ],
       ),
 
-      // 2️⃣  Menú desplegable con “Actualizar datos”
+
       endDrawer: Drawer(
         child: ListView(
           padding: EdgeInsets.zero,
@@ -152,7 +152,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         ),
       ),
 
-      // ─── Cuerpo ───
+
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: ListView(

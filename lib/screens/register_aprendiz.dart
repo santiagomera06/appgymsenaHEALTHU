@@ -1,7 +1,7 @@
-import 'dart:convert';
+
 import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
+import 'package:healthu/services/registro_service.dart';
 import 'package:image_picker/image_picker.dart';
 
 class RegisterAprendiz extends StatefulWidget {
@@ -48,37 +48,26 @@ class _RegisterAprendizState extends State<RegisterAprendiz> {
   }
 
   Future<void> registrar() async {
-    final datos = {
-      ...campos.map((key, value) => MapEntry(key, value.text)),
-      "jornada": jornadaSeleccionada ?? '',
-    };
+  final datos = {
+    ...campos.map((key, value) => MapEntry(key, value.text)),
+    "jornada": jornadaSeleccionada ?? '',
+  };
 
-    try {
-      final response = await http.post(
-        url,
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode(datos),
-      );
+  final error = await RegistroService.registrarAprendiz(datos);
 
-      if (!mounted) return;
+  if (!mounted) return;
 
-      if (response.statusCode == 201 || response.statusCode == 200) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Registro exitoso')),
-        );
-        Navigator.pop(context);
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: ${response.body}')),
-        );
-      }
-    } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error de conexión: $e')),
-      );
-    }
+  if (error == null) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Registro exitoso')),
+    );
+    Navigator.pop(context);
+  } else {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(error)),
+    );
   }
+}
 
   InputDecoration decoracionCampo(String label, IconData icono) {
     return InputDecoration(

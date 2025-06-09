@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_localizations/flutter_localizations.dart'; // ✅ NECESARIO para DatePicker en español
+import 'package:flutter_localizations/flutter_localizations.dart'; 
 import 'package:healthu/screens/login.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:healthu/styles/app_theme.dart';
@@ -9,7 +9,7 @@ import 'package:healthu/screens/register_aprendiz.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await initializeDateFormatting('es', null); // ✅ Inicializa formato de fecha en español
+  await initializeDateFormatting('es', null); //  Inicializa formato de fecha en español
   runApp(const MyApp());
 }
 
@@ -31,7 +31,7 @@ class MyApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,
 
-      // ✅ Agregados para localización en español
+      // Agregados para localización en español
       localizationsDelegates: GlobalMaterialLocalizations.delegates,
       supportedLocales: const [
         Locale('es', ''), // Español
