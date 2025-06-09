@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:healthu/models/desafio_model.dart';
 import 'package:healthu/routes/desafios_routes.dart';
+import 'package:healthu/routes/crear_rutina_routes.dart'; // Importa las rutas de creación
 import 'package:healthu/styles/desafios_styles.dart';
 import 'package:healthu/widgets/desafio_card.dart';
 import 'package:healthu/screens/ejercicios_principiante_screen.dart';
@@ -114,6 +115,10 @@ class _DesafiosScreenState extends State<DesafiosScreen> {
     );
   }
 
+  void _navegarACrearRutina() {
+    Navigator.pushNamed(context, CrearRutinaRoutes.crearRutina);
+  }
+
   @override
   Widget build(BuildContext context) {
     if (isLoading) {
@@ -152,6 +157,11 @@ class _DesafiosScreenState extends State<DesafiosScreen> {
         ),
         centerTitle: false,
         actions: [
+          IconButton(
+            icon: const Icon(Icons.add),
+            onPressed: _navegarACrearRutina, // Botón para crear rutina
+            tooltip: 'Crear nueva rutina',
+          ),
           IconButton(
             icon: const Icon(Icons.more_vert),
             onPressed: () {
@@ -194,8 +204,43 @@ class _DesafiosScreenState extends State<DesafiosScreen> {
           ],
         ),
       ),
-      // ¡Sin bottomNavigationBar aquí!
+      floatingActionButton: FloatingActionButton(
+        onPressed: _navegarACrearRutina, // Botón flotante alternativo
+        child: const Icon(Icons.add),
+        backgroundColor: Colors.green[800],
+      ),
+      // bottomNavigationBar: _buildBottomNavBar(),
     );
+  }
+
+  Widget _buildMensajeProgreso() {
+    if (desafios.every((d) => d.completado)) {
+      return const Text(
+        '¡Has completado todos los desafíos!',
+        style: TextStyle(
+          fontSize: 16,
+          fontWeight: FontWeight.bold,
+          color: Colors.green,
+        ),
+      );
+    }
+
+    final primerDesafioNoCompletado = desafios.firstWhere(
+      (d) => !d.completado,
+      orElse: () => desafios.first,
+    );
+
+    if (!primerDesafioNoCompletado.desbloqueado) {
+      return const Text(
+        'Comienza por el primer desafío para desbloquear los siguientes.',
+        style: TextStyle(
+          fontSize: 16,
+          color: Colors.orange,
+        ),
+      );
+    }
+
+    return const SizedBox.shrink();
   }
 
   Widget _buildPuntuacionYObjetivoRow() {
@@ -276,22 +321,22 @@ class _DesafiosScreenState extends State<DesafiosScreen> {
     );
   }
 
-  Widget _buildMensajeProgreso() {
-    if (desafios.every((d) => d.completado)) {
-      return const Text(
-        '¡Has completado todos los desafíos!',
-        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.green),
-      );
-    }
+  // Widget _buildMensajeProgreso() {
+  //   if (desafios.every((d) => d.completado)) {
+  //     return const Text(
+  //       '¡Has completado todos los desafíos!',
+  //       style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.green),
+  //     );
+  //   }
 
-    final primerNo = desafios.firstWhere((d) => !d.completado, orElse: () => desafios.first);
-    if (!primerNo.desbloqueado) {
-      return const Text(
-        'Comienza por el primer desafío para desbloquear los siguientes.',
-        style: TextStyle(fontSize: 16, color: Colors.orange),
-      );
-    }
+  //   final primerNo = desafios.firstWhere((d) => !d.completado, orElse: () => desafios.first);
+  //   if (!primerNo.desbloqueado) {
+  //     return const Text(
+  //       'Comienza por el primer desafío para desbloquear los siguientes.',
+  //       style: TextStyle(fontSize: 16, color: Colors.orange),
+  //     );
+  //   }
 
-    return const SizedBox.shrink();
-  }
+  //   return const SizedBox.shrink();
+  // }
 }
