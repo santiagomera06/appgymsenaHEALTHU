@@ -115,7 +115,7 @@ class _EjerciciosPrincipianteScreenState extends State<EjerciciosPrincipianteScr
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Rutina de Principiante',
+              'Rutina de Principiante y avanzado',
               style: EjerciciosStyles.titulo,
             ),
             const SizedBox(height: 8),

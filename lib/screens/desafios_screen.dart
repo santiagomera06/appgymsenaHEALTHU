@@ -3,9 +3,10 @@ import 'package:flutter/material.dart';
 import 'package:healthu/models/desafio_model.dart';
 import 'package:healthu/routes/desafios_routes.dart';
 import 'package:healthu/routes/crear_rutina_routes.dart'; // Importa las rutas de creación
+import 'package:healthu/screens/rutinas_generales.dart';
 import 'package:healthu/styles/desafios_styles.dart';
 import 'package:healthu/widgets/desafio_card.dart';
-import 'package:healthu/screens/ejercicios_principiante_screen.dart';
+
 
 class DesafiosScreen extends StatefulWidget {
   const DesafiosScreen({super.key});
@@ -194,7 +195,7 @@ class _DesafiosScreenState extends State<DesafiosScreen> {
             _buildPuntuacionYObjetivoRow(),
             const SizedBox(height: 20),
             const Text(
-              'Desafíos Sena Healthu',
+              'Desafíos Sena Healthuss',
               style: DesafiosStyles.titulo,
             ),
             const SizedBox(height: 15),
@@ -307,11 +308,12 @@ class _DesafiosScreenState extends State<DesafiosScreen> {
             Navigator.push(
               context,
               MaterialPageRoute(
-                builder: (ctx) => EjerciciosPrincipianteScreen(
-                  nombreDesafio: d.nombre,
-                  desafio: d,
-                  onCompletado: () => _completarDesafio(d.id),
-                ),
+                // builder: (ctx) => EjerciciosPrincipianteScreen(
+                //   nombreDesafio: d.nombre,
+                //   desafio: d,
+                //   onCompletado: () => _completarDesafio(d.id),
+                // ),
+                builder: (ctx) => RutinasGenerales( ),
               ),
             );
           },
