@@ -6,6 +6,7 @@ import 'package:healthu/styles/app_theme.dart';
 import 'package:healthu/models/usuario.dart';
 import 'package:healthu/screens/home_screen.dart';
 import 'package:healthu/screens/register_aprendiz.dart';
+import 'package:healthu/screens/crear_rutina_screen.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -42,8 +43,10 @@ class MyApp extends StatelessWidget {
 
       routes: {
         '/registro': (context) => const RegisterAprendiz(),
-        '/dashboard': (context) =>
-            HomeScreen(usuario: usuarioDemo, indiceInicial: 2),
+        '/dashboard': (context) => HomeScreen(usuario: usuarioDemo, indiceInicial: 2),
+        // '/': (context) => PantallaPrincipal(),
+        '/crear-rutina': (context) => CrearRutinaScreen(), // 👈 Asegúrate que CrearRutinaScreen exista
+
       },
     );
   }
