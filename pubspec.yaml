@@ -18,7 +18,7 @@ dependencies:
   google_fonts: ^5.0.0
 
   # ——— Internacionalización ———
-  intl: 0.20.2
+  intl: 0.19.0
 
 
   # ——— Gráficas (versión moderna con parámetros nombrados) ———
