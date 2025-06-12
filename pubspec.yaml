@@ -18,11 +18,10 @@ dependencies:
   google_fonts: ^5.0.0
 
   # ——— Internacionalización ———
-  intl: 0.20.2
-
+  intl: ^0.19.0
 
   # ——— Gráficas (versión moderna con parámetros nombrados) ———
-  fl_chart: ^0.65.0       # ← subido
+  fl_chart: ^0.65.0
 
   # ——— Otros ———
   shared_preferences: ^2.2.2
@@ -36,3 +35,7 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+  assets:
+    - assets/images/full.png
+    - assets/images/pecho.png
+    - assets/images/musculos.png

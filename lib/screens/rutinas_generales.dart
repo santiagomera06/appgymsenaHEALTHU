@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
 import '../widgets/boton_en_imagen.dart';
 import '../widgets/barra_navegacion.dart';
-import '../widgets/temporizador.dart';
+import 'detalle_rutina.dart';
 
 class RutinasGenerales extends StatefulWidget {
-
   const RutinasGenerales({super.key});
 
   @override
@@ -22,6 +21,8 @@ class _RutinasGeneralesState extends State<RutinasGenerales> {
       'descripcion': 'Rutina básica para activar todo el cuerpo.',
       'imagen': 'assets/images/full.png',
       'detalles': ['Sentadillas', 'Flexiones pared', 'Jumping jacks'],
+      'musculos': 'Piernas, brazos, espalda y core',
+      'imagenMusculos': 'assets/images/musculos.png',
     },
     {
       'titulo': 'Full Body Intermedio',
@@ -30,6 +31,8 @@ class _RutinasGeneralesState extends State<RutinasGenerales> {
       'descripcion': 'Rutina intermedia para resistencia y fuerza.',
       'imagen': 'assets/images/full.png',
       'detalles': ['Burpees', 'Plancha', 'Flexiones'],
+      'musculos': 'Piernas, abdomen y hombros',
+      'imagenMusculos': 'assets/images/musculos.png',
     },
     {
       'titulo': 'Pecho Avanzado',
@@ -38,6 +41,8 @@ class _RutinasGeneralesState extends State<RutinasGenerales> {
       'descripcion': 'Rutina avanzada para pecho.',
       'imagen': 'assets/images/pecho.png',
       'detalles': ['Press banca', 'Fondos', 'Flexiones'],
+      'musculos': 'Pectorales, tríceps y hombros',
+      'imagenMusculos': 'assets/images/musculos.png',
     },
   ];
 
@@ -120,18 +125,24 @@ class _RutinasGeneralesState extends State<RutinasGenerales> {
                   const SizedBox(height: 8),
                   ElevatedButton.icon(
                     onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => TemporizadorPage(
-                            titulo: ejercicio['titulo'],
-                            segundos: 300,
-                          ),
-                        ),
-                      );
-                    },
+                       Navigator.push(
+                       context,
+                       MaterialPageRoute(
+                     builder: (context) => DetalleRutina(
+                      titulo: ejercicio['titulo'],
+        descripcion: ejercicio['descripcion'],
+        imagen: ejercicio['imagen'],
+        nivel: ejercicio['nivel'],
+        ejercicios: List<String>.from(ejercicio['detalles']),
+        musculos: (ejercicio['musculos'] as String).split(', ').toList(),
+        imagenMusculos: ejercicio['imagenMusculos'],
+      ),
+    ),
+  );
+},
+
                     icon: const Icon(Icons.play_arrow),
-                    label: const Text('Iniciar rutina'),
+                    label: const Text('Ver Detalle Rutina'),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.green,
                       foregroundColor: Colors.white,
