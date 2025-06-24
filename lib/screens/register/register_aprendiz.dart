@@ -1,7 +1,6 @@
-
 import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:healthu/services/registro_service.dart';
+import 'package:healthu/screens/register/register_datos_aprendiz.dart';
 import 'package:image_picker/image_picker.dart';
 
 class RegisterAprendiz extends StatefulWidget {
@@ -16,25 +15,18 @@ class _RegisterAprendizState extends State<RegisterAprendiz> {
     "nombreUsuario": TextEditingController(),
     "emailUsuario": TextEditingController(),
     "contrasenaUsuario": TextEditingController(),
-    "estado": TextEditingController(text: "Activo"),
     "fotoPerfil": TextEditingController(),
     "apellidos": TextEditingController(),
     "nombres": TextEditingController(),
     "telefono": TextEditingController(),
     "identificacion": TextEditingController(),
     "fechaNacimiento": TextEditingController(),
-    "ficha": TextEditingController(),
-    "estatura": TextEditingController(),
-    "peso": TextEditingController(),
-    "horasAcumuladas": TextEditingController(text: "0"),
-    "puntosAcumulados": TextEditingController(text: "0"),
-    "nivelFisico": TextEditingController(),
   };
 
-  String? jornadaSeleccionada;
   File? imagenSeleccionada;
-
-  final url = Uri.parse('https://gym-ver2-api-aafaf6c56cad.herokuapp.com/auth/register');
+  String? estadoSeleccionado = 'Activo';
+  String? sexoSeleccionado; // Variable para almacenar el sexo seleccionado
+  bool _mostrarContrasena = false;
 
   Future<void> seleccionarImagen() async {
     final picker = ImagePicker();
@@ -47,56 +39,78 @@ class _RegisterAprendizState extends State<RegisterAprendiz> {
     }
   }
 
-  Future<void> registrar() async {
-  final datos = {
-    ...campos.map((key, value) => MapEntry(key, value.text)),
-    "jornada": jornadaSeleccionada ?? '',
-  };
+  void _siguientePantalla() {
+    // Añadir el estado y sexo seleccionados al mapa de campos
+    campos['estado'] = TextEditingController(text: estadoSeleccionado);
+    campos['sexo'] = TextEditingController(text: sexoSeleccionado);
+    
+    // Validar campos obligatorios antes de continuar
+    if (campos.values.any((controller) => controller.text.isEmpty) || sexoSeleccionado == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Por favor complete todos los campos')),
+      );
+      return;
+    }
 
-  final error = await RegistroService.registrarAprendiz(datos);
-
-  if (!mounted) return;
-
-  if (error == null) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Registro exitoso')),
-    );
-    Navigator.pop(context);
-  } else {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(error)),
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => RegisterDatosAprendiz(
+          datosUsuario: campos.map((key, value) => MapEntry(key, value.text)),
+          imagenPerfil: imagenSeleccionada,
+        ),
+      ),
     );
   }
-}
 
-  InputDecoration decoracionCampo(String label, IconData icono) {
+  InputDecoration decoracionCampo(String label, IconData icono, {bool esContrasena = false}) {
     return InputDecoration(
       labelText: label,
       prefixIcon: Icon(icono, color: Colors.green),
+      suffixIcon: esContrasena
+          ? IconButton(
+              icon: Icon(
+                _mostrarContrasena ? Icons.visibility : Icons.visibility_off,
+                color: Colors.grey,
+              ),
+              onPressed: () {
+                setState(() {
+                  _mostrarContrasena = !_mostrarContrasena;
+                });
+              },
+            )
+          : null,
       border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
       filled: true,
       fillColor: Colors.white,
     );
   }
 
-  Widget crearCampo(String key, IconData icono) {
+  Widget crearCampo(String key, IconData icono, {bool esContrasena = false}) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8),
       child: TextField(
         controller: campos[key],
-        decoration: decoracionCampo(key, icono),
+        obscureText: esContrasena && !_mostrarContrasena,
+        decoration: decoracionCampo(key, icono, esContrasena: esContrasena),
       ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    final jornadas = ['Mañana', 'Tarde', 'Noche'];
+    final estados = ['Activo', 'Inactivo'];
+    final sexos = ['Masculino', 'Femenino']; // Lista de opciones para sexo
 
     return Scaffold(
       backgroundColor: Colors.grey[200],
       appBar: AppBar(
-        title: const Text('Registrar Aprendiz'),
+        title: const Text('Registrar Aprendiz - Información Personal'),
+        titleTextStyle: TextStyle(
+          fontSize: 16, 
+          fontWeight: FontWeight.bold, 
+          color: Colors.white, 
+        ),
         backgroundColor: Colors.green,
       ),
       body: SingleChildScrollView(
@@ -125,19 +139,36 @@ class _RegisterAprendizState extends State<RegisterAprendiz> {
                   const SizedBox(height: 20),
 
                   crearCampo("nombreUsuario", Icons.person),
-                  crearCampo("emailUsuario", Icons.email),
-                  crearCampo("contrasenaUsuario", Icons.lock),
-                  crearCampo("estado", Icons.check_circle),
-                  crearCampo("apellidos", Icons.person_outline),
                   crearCampo("nombres", Icons.person_2),
+                  crearCampo("apellidos", Icons.person_outline),
+                  crearCampo("emailUsuario", Icons.email),
+                  crearCampo("contrasenaUsuario", Icons.lock, esContrasena: true),
+                  
+                  const SizedBox(height: 12),
+                  DropdownButtonFormField<String>(
+                    decoration: decoracionCampo("estado", Icons.check_circle),
+                    value: estadoSeleccionado,
+                    onChanged: (value) => setState(() => estadoSeleccionado = value),
+                    items: estados.map((estado) => DropdownMenuItem(
+                      value: estado,
+                      child: Text(estado),
+                    )).toList(),
+                  ),
+
                   crearCampo("telefono", Icons.phone),
                   crearCampo("identificacion", Icons.badge),
-                  crearCampo("ficha", Icons.book),
-                  crearCampo("estatura", Icons.height),
-                  crearCampo("peso", Icons.monitor_weight),
-                  crearCampo("horasAcumuladas", Icons.timer),
-                  crearCampo("puntosAcumulados", Icons.stars),
-                  crearCampo("nivelFisico", Icons.fitness_center),
+                  
+                  const SizedBox(height: 12),
+                  DropdownButtonFormField<String>(
+                    decoration: decoracionCampo("sexo", Icons.people),
+                    value: sexoSeleccionado,
+                    onChanged: (value) => setState(() => sexoSeleccionado = value),
+                    items: sexos.map((sexo) => DropdownMenuItem(
+                      value: sexo,
+                      child: Text(sexo),
+                    )).toList(),
+                    hint: const Text('Seleccione su sexo'), // Texto cuando no hay selección
+                  ),
 
                   const SizedBox(height: 12),
                   TextField(
@@ -159,14 +190,6 @@ class _RegisterAprendizState extends State<RegisterAprendiz> {
                     decoration: decoracionCampo("fechaNacimiento", Icons.calendar_today),
                   ),
 
-                  const SizedBox(height: 12),
-                  DropdownButtonFormField<String>(
-                    decoration: decoracionCampo("jornada", Icons.schedule),
-                    value: jornadaSeleccionada,
-                    onChanged: (value) => setState(() => jornadaSeleccionada = value),
-                    items: jornadas.map((j) => DropdownMenuItem(value: j, child: Text(j))).toList(),
-                  ),
-
                   const SizedBox(height: 24),
                   ElevatedButton.icon(
                     style: ElevatedButton.styleFrom(
@@ -174,10 +197,10 @@ class _RegisterAprendizState extends State<RegisterAprendiz> {
                       padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 40),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                     ),
-                    onPressed: registrar,
-                    icon: const Icon(Icons.check),
+                    onPressed: _siguientePantalla,
+                    icon: const Icon(Icons.arrow_forward),
                     label: const Text(
-                      'Registrarse',
+                      'Siguiente',
                       style: TextStyle(fontSize: 16, color: Colors.white),
                     ),
                   ),
