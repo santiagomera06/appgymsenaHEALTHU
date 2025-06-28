@@ -3,13 +3,13 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:healthu/models/usuario.dart';
 
-import '../widgets/selector_dispersion.dart';
-import '../widgets/graficas_extra.dart';
+import '../../widgets/selector_dispersion.dart';
+import '../../widgets/graficas_extra.dart';
 import 'ficha_identificacion.dart';
 import 'tarjetas_dashboard.dart';
-import 'graficas_dashboard.dart';
-import 'grafica_anillo.dart';
-import 'editar_usuario_screen.dart';  
+import '../graficas/graficas_dashboard.dart';
+import '../graficas/grafica_anillo.dart';
+import '../editar usuario/editar_usuario_screen.dart';  
 
 
 class DashboardScreen extends StatefulWidget {

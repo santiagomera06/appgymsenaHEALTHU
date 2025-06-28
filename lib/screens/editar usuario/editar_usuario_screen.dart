@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:healthu/models/usuario.dart';
-import 'package:healthu/screens/ficha_identificacion.dart';
+import 'package:healthu/screens/dashboard/ficha_identificacion.dart';
 
 class EditarUsuarioScreen extends StatefulWidget {
   final Usuario usuario;                       // ← recibe el usuario actual

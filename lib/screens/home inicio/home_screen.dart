@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:healthu/models/usuario.dart';
-import 'package:healthu/screens/desafios_screen.dart';
+import 'package:healthu/screens/desafios/desafios_screen.dart';
 import 'package:healthu/screens/clasificacion_screen.dart';
-import 'package:healthu/screens/dashboard_screen.dart';
+import 'package:healthu/screens/dashboard/dashboard_screen.dart';
 import 'package:healthu/widgets/bottom_nav_bar.dart';
 
 class HomeScreen extends StatefulWidget {

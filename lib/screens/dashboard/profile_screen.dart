@@ -2,14 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 import 'package:healthu/models/usuario.dart';
-import 'package:healthu/screens/ficha_identificacion.dart';
-import 'package:healthu/screens/tarjetas_dashboard.dart';
-import 'package:healthu/screens/graficas_dashboard.dart';
-import 'package:healthu/screens/grafica_anillo.dart';
+import 'package:healthu/screens/dashboard/ficha_identificacion.dart';
+import 'package:healthu/screens/dashboard/tarjetas_dashboard.dart';
+import 'package:healthu/screens/graficas/graficas_dashboard.dart';
+import 'package:healthu/screens/graficas/grafica_anillo.dart';
 
 class ProfileScreen extends StatelessWidget {
   final Usuario usuario;
-  const ProfileScreen({Key? key, required this.usuario}) : super(key: key);
+  const ProfileScreen({super.key, required this.usuario});
 
   @override
   Widget build(BuildContext context) {

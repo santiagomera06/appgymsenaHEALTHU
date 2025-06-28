@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:cached_network_image/cached_network_image.dart';
-import '../widgets/boton_en_imagen.dart';
-import '../widgets/barra_navegacion.dart';
-import '../widgets/temporizador.dart';
+import '../../widgets/boton_en_imagen.dart';
+import '../../widgets/barra_navegacion.dart';
+import '../../widgets/temporizador.dart';
 
 class RutinasGenerales extends StatefulWidget {
   const RutinasGenerales({super.key});

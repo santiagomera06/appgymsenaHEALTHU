@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart'; 
-import 'package:healthu/screens/login.dart';
+import 'package:healthu/screens/inicio%20secion/login.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:healthu/styles/app_theme.dart';
 import 'package:healthu/models/usuario.dart';
-import 'package:healthu/screens/home_screen.dart';
+import 'package:healthu/screens/home%20inicio/home_screen.dart';
 import 'package:healthu/screens/register/register_aprendiz.dart';
-import 'package:healthu/screens/crear_rutina_screen.dart';
+import 'package:healthu/screens/crear%20rutina/crear_rutina_screen.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();

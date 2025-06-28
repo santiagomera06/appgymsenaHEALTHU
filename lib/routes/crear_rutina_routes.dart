@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:healthu/screens/crear_rutina_screen.dart';
+import 'package:healthu/screens/crear%20rutina/crear_rutina_screen.dart';
 
 class CrearRutinaRoutes {
   static const String crearRutina = '/crear-rutina';
