@@ -1,8 +1,6 @@
-
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:healthu/models/usuario.dart';
-
 import '../../widgets/selector_dispersion.dart';
 import '../../widgets/graficas_extra.dart';
 import 'ficha_identificacion.dart';
@@ -10,7 +8,6 @@ import 'tarjetas_dashboard.dart';
 import '../graficas/graficas_dashboard.dart';
 import '../graficas/grafica_anillo.dart';
 import '../editar usuario/editar_usuario_screen.dart';  
-
 
 class DashboardScreen extends StatefulWidget {
   final Usuario usuario;
@@ -22,24 +19,66 @@ class DashboardScreen extends StatefulWidget {
 
 class _DashboardScreenState extends State<DashboardScreen> {
   late Usuario usuario;
-
+  
   @override
   void initState() {
     super.initState();
     usuario = widget.usuario;     
   }
 
-  @override
-  Widget build(BuildContext context) {
- 
-    final fechaHoy = DateFormat('EEEE d MMMM', 'es').format(DateTime.now());
+  List<Widget> _buildDrawerItems() {
+    return [
+      ListTile(
+        leading: const Icon(Icons.home),
+        title: const Text('Inicio'),
+        onTap: () => Navigator.pop(context),
+      ),
+      ListTile(
+        leading: const Icon(Icons.person),
+        title: const Text('Perfil'),
+        onTap: () => Navigator.pop(context),
+      ),
+      ListTile(
+        leading: const Icon(Icons.refresh),
+        title: const Text('Actualizar datos'),
+        onTap: () async {
+          Navigator.pop(context);
+          final actualizado = await Navigator.push<Usuario>(
+            context,
+            MaterialPageRoute(
+              builder: (_) => EditarUsuarioScreen(usuario: usuario),
+            ),
+          );
+          if (actualizado != null) {
+            setState(() => usuario = actualizado);
+          }
+        },
+      ),
+      const Divider(),
+      ListTile(
+        leading: const Icon(Icons.logout),
+        title: const Text('Cerrar sesión'),
+        onTap: () {
+          Navigator.pop(context);
+          Navigator.pushReplacementNamed(context, '/login');
+        },
+      ),
+    ];
+  }
+
+  String _obtenerSaludo() {
     final hora = DateTime.now().hour;
-    final saludo = (hora < 12)
+    return hora < 12
         ? '¡Buenos días!'
-        : (hora < 18)
+        : hora < 18
             ? '¡Buenas tardes!'
             : '¡Buenas noches!';
+  }
 
+  @override
+  Widget build(BuildContext context) {
+    final fechaHoy = DateFormat('EEEE d MMMM', 'es').format(DateTime.now());
+    final saludo = _obtenerSaludo();
 
     final datosSemana = <double>[2, 3, 1, 4, 5, 2, 0];
 
@@ -90,78 +129,29 @@ class _DashboardScreenState extends State<DashboardScreen> {
         ],
       ),
 
-
       endDrawer: Drawer(
         child: ListView(
           padding: EdgeInsets.zero,
           children: [
-            DrawerHeader(
-              decoration: const BoxDecoration(color: Colors.green),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  CircleAvatar(
-                      backgroundImage: NetworkImage(usuario.fotoUrl),
-                      radius: 30),
-                  const SizedBox(height: 10),
-                  Text(usuario.nombre,
-                      style: const TextStyle(
-                          color: Colors.white, fontSize: 18)),
-                  const SizedBox(height: 4),
-                  Text(usuario.email,
-                      style: const TextStyle(
-                          color: Colors.white70, fontSize: 12)),
-                ],
+            UserAccountsDrawerHeader(
+              accountName: Text(usuario.nombre),
+              accountEmail: Text(usuario.email),
+              currentAccountPicture: CircleAvatar(
+                backgroundImage: NetworkImage(usuario.fotoUrl),
               ),
+              decoration: const BoxDecoration(color: Colors.green),
             ),
-            ListTile(
-              leading: const Icon(Icons.home),
-              title: const Text('Inicio'),
-              onTap: () => Navigator.pop(context),
-            ),
-            ListTile(
-              leading: const Icon(Icons.person),
-              title: const Text('Perfil'),
-              onTap: () => Navigator.pop(context),
-            ),
-            ListTile(
-              leading: const Icon(Icons.refresh),
-              title: const Text('Actualizar datos'),
-              onTap: () async {
-                Navigator.pop(context); // cierra drawer
-                final actualizado =
-                    await Navigator.push<Usuario>(context,
-                        MaterialPageRoute(
-                            builder: (_) =>
-                                EditarUsuarioScreen(usuario: usuario)));
-                if (actualizado != null) {
-                  setState(() => usuario = actualizado);
-                }
-              },
-            ),
-            const Divider(),
-            ListTile(
-              leading: const Icon(Icons.logout),
-              title: const Text('Cerrar sesión'),
-              onTap: () {
-                Navigator.pop(context);
-                Navigator.pushReplacementNamed(context, '/login');
-              },
-            ),
+            ..._buildDrawerItems(),
           ],
         ),
       ),
-
 
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: ListView(
           children: [
-            // Tarjeta de identificación
             FichaIdentificacion(usuario: usuario),
             const SizedBox(height: 12),
-
-            // Bienvenida
             Center(
               child: Text('Bienvenido, ${usuario.nombre.split(' ')[0]}',
                   style: const TextStyle(
@@ -180,29 +170,24 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         color: Colors.green))),
             const SizedBox(height: 24),
 
-            // Tarjetas resumen
             TarjetasDashboard(items: tarjetas),
             const SizedBox(height: 32),
 
-            // Progreso de nivel
             const TextoSeccion('Progreso de Nivel'),
             const BarraProgreso(),
             const SizedBox(height: 32),
 
-            // Progreso semanal
             const TextoSeccion('Progreso semanal de desafíos'),
             const SizedBox(height: 16),
             GraficaBarras(valores: datosSemana),
             const SizedBox(height: 32),
             GraficaCircular(sections: actividades),
 
-            // Calorías por actividad
             const SizedBox(height: 32),
             const TextoSeccion('Calorías por actividad (semana)'),
             const SizedBox(height: 16),
             const GraficaBarrasApiladas(),
 
-            // Comparar variables
             const SizedBox(height: 32),
             const TextoSeccion('Comparar variables'),
             const SelectorDispersion(),

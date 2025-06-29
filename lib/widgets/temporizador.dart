@@ -1,19 +1,24 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
 
-class TemporizadorPage extends StatefulWidget {
-  final String titulo;
+class TemporizadorWidget extends StatefulWidget {
   final int segundos;
+  final VoidCallback onComplete;
 
-  const TemporizadorPage({super.key, required this.titulo, required this.segundos});
+  const TemporizadorWidget({
+    super.key,
+    required this.segundos,
+    required this.onComplete,
+  });
 
   @override
-  State<TemporizadorPage> createState() => _TemporizadorPageState();
+  State<TemporizadorWidget> createState() => _TemporizadorWidgetState();
 }
 
-class _TemporizadorPageState extends State<TemporizadorPage> {
+class _TemporizadorWidgetState extends State<TemporizadorWidget> {
   late int _segundosRestantes;
-  Timer? _timer;
+  late Timer _timer;
+  bool _isRunning = true;
 
   @override
   void initState() {
@@ -22,25 +27,30 @@ class _TemporizadorPageState extends State<TemporizadorPage> {
     _iniciarTemporizador();
   }
 
+  @override
+  void dispose() {
+    _timer.cancel();
+    super.dispose();
+  }
+
   void _iniciarTemporizador() {
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
       if (_segundosRestantes > 0) {
-        setState(() {
-          _segundosRestantes--;
-        });
+        setState(() => _segundosRestantes--);
       } else {
-        _timer?.cancel();
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('¡Rutina completada!')),
-        );
+        _timer.cancel();
+        widget.onComplete();
       }
     });
   }
 
-  @override
-  void dispose() {
-    _timer?.cancel();
-    super.dispose();
+  void _pausarTemporizador() {
+    if (_isRunning) {
+      _timer.cancel();
+    } else {
+      _iniciarTemporizador();
+    }
+    setState(() => _isRunning = !_isRunning);
   }
 
   @override
@@ -48,17 +58,24 @@ class _TemporizadorPageState extends State<TemporizadorPage> {
     final minutos = (_segundosRestantes ~/ 60).toString().padLeft(2, '0');
     final segundos = (_segundosRestantes % 60).toString().padLeft(2, '0');
 
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(widget.titulo),
-        backgroundColor: Colors.green,
-      ),
-      body: Center(
-        child: Text(
+    return Column(
+      children: [
+        Text(
           '$minutos:$segundos',
-          style: const TextStyle(fontSize: 60, fontWeight: FontWeight.bold),
+          style: const TextStyle(fontSize: 48, fontWeight: FontWeight.bold),
         ),
-      ),
+        const SizedBox(height: 16),
+        ElevatedButton(
+          onPressed: _pausarTemporizador,
+          style: ElevatedButton.styleFrom(
+            backgroundColor: _isRunning ? Colors.orange : Colors.green,
+          ),
+          child: Text(
+            _isRunning ? 'Pausar' : 'Reanudar',
+            style: const TextStyle(color: Colors.white),
+          ),
+        ),
+      ],
     );
   }
 }

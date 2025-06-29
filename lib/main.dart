@@ -10,44 +10,65 @@ import 'package:healthu/screens/crear%20rutina/crear_rutina_screen.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await initializeDateFormatting('es', null); //  Inicializa formato de fecha en español
-  runApp(const MyApp());
+  await initializeDateFormatting('es', null);
+  runApp(const HealthuApp());
 }
 
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+class HealthuApp extends StatelessWidget {
+  const HealthuApp({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final usuarioDemo = Usuario(
-      id: '12345678',
-      nombre: 'Santiago Mera',
-      email: 'santiagomera@example.com',
-      fotoUrl: 'https://via.placeholder.com/150',
-      nivelActual: 'Avanzado',
-    );
-
     return MaterialApp(
       title: 'HEALTHU',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,
+      darkTheme: AppTheme.darkTheme,
+      themeMode: ThemeMode.light,
 
-      // Agregados para localización en español
-      localizationsDelegates: GlobalMaterialLocalizations.delegates,
+      localizationsDelegates: const [
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
       supportedLocales: const [
-        Locale('es', ''), // Español
-        Locale('en', ''), // Inglés
+        Locale('es', ''),
+        Locale('en', ''),
       ],
 
-      home: const Login(),
-
+      initialRoute: '/',
       routes: {
+        '/': (context) => const Login(),
         '/registro': (context) => const RegisterAprendiz(),
-        '/dashboard': (context) => HomeScreen(usuario: usuarioDemo, indiceInicial: 2),
-        // '/': (context) => PantallaPrincipal(),
-        '/crear-rutina': (context) => CrearRutinaScreen(), // 👈 Asegúrate que CrearRutinaScreen exista
-
+        '/home': (context) {
+          final usuario = ModalRoute.of(context)?.settings.arguments as Usuario?;
+          return HomeScreen(
+            usuario: usuario ?? _usuarioDemo(),
+            indiceInicial: 2,
+          );
+        },
+        '/crear-rutina': (context) => const CrearRutinaScreen(),
       },
+      onGenerateRoute: (settings) {
+        // Manejar rutas no definidas
+        return MaterialPageRoute(
+          builder: (_) => Scaffold(
+            body: Center(
+              child: Text('Ruta no encontrada: ${settings.name}'),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Usuario _usuarioDemo() {
+    return Usuario(
+      id: '12345678',
+      nombre: 'Usuario Demo',
+      email: 'demo@example.com',
+      fotoUrl: 'https://via.placeholder.com/150',
+      nivelActual: 'Principiante',
     );
   }
 }
