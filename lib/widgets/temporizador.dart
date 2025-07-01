@@ -1,8 +1,10 @@
-import 'package:flutter/material.dart';
 import 'dart:async';
+import 'package:flutter/material.dart';
 
 class TemporizadorWidget extends StatefulWidget {
+  /// Duración inicial en segundos
   final int segundos;
+  /// Callback al completar la cuenta atrás
   final VoidCallback onComplete;
 
   const TemporizadorWidget({
@@ -12,68 +14,88 @@ class TemporizadorWidget extends StatefulWidget {
   });
 
   @override
-  State<TemporizadorWidget> createState() => _TemporizadorWidgetState();
+  State<TemporizadorWidget> createState() =>
+      TemporizadorWidgetState(); // usa clase pública
 }
 
-class _TemporizadorWidgetState extends State<TemporizadorWidget> {
-  late int _segundosRestantes;
-  late Timer _timer;
-  bool _isRunning = true;
+// Cambiamos de privado (_...) a público sin guión bajo
+class TemporizadorWidgetState extends State<TemporizadorWidget> {
+  late int _tiempoRestante;
+  Timer? _timer;
+
+  bool get isRunning => _timer?.isActive ?? false;
 
   @override
   void initState() {
     super.initState();
-    _segundosRestantes = widget.segundos;
-    _iniciarTemporizador();
+    _tiempoRestante = widget.segundos;
+  }
+
+ void start() {
+  if (isRunning) return;
+  // Fuerza rebuild para que el botón cambie de estado
+  setState(() {});
+  _timer = Timer.periodic(const Duration(seconds: 1), (_) {
+    if (_tiempoRestante > 0) {
+      setState(() => _tiempoRestante--);
+    } else {
+      _complete();
+    }
+  });
+}
+
+void pause() {
+  _timer?.cancel();
+  // Fuerza rebuild para que el botón cambie de estado
+  setState(() {});
+}
+
+  void reset() {
+    _timer?.cancel();
+    setState(() => _tiempoRestante = widget.segundos);
+  }
+
+  void _complete() {
+    _timer?.cancel();
+    widget.onComplete();
   }
 
   @override
   void dispose() {
-    _timer.cancel();
+    _timer?.cancel();
     super.dispose();
-  }
-
-  void _iniciarTemporizador() {
-    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      if (_segundosRestantes > 0) {
-        setState(() => _segundosRestantes--);
-      } else {
-        _timer.cancel();
-        widget.onComplete();
-      }
-    });
-  }
-
-  void _pausarTemporizador() {
-    if (_isRunning) {
-      _timer.cancel();
-    } else {
-      _iniciarTemporizador();
-    }
-    setState(() => _isRunning = !_isRunning);
   }
 
   @override
   Widget build(BuildContext context) {
-    final minutos = (_segundosRestantes ~/ 60).toString().padLeft(2, '0');
-    final segundos = (_segundosRestantes % 60).toString().padLeft(2, '0');
-
+    final minutos = (_tiempoRestante ~/ 60).toString().padLeft(2, '0');
+    final segundos = (_tiempoRestante % 60).toString().padLeft(2, '0');
     return Column(
+      mainAxisSize: MainAxisSize.min,
       children: [
         Text(
-          '$minutos:$segundos',
-          style: const TextStyle(fontSize: 48, fontWeight: FontWeight.bold),
+        '$minutos:$segundos',
+        style: Theme.of(context).textTheme.headlineMedium,
         ),
         const SizedBox(height: 16),
-        ElevatedButton(
-          onPressed: _pausarTemporizador,
-          style: ElevatedButton.styleFrom(
-            backgroundColor: _isRunning ? Colors.orange : Colors.green,
-          ),
-          child: Text(
-            _isRunning ? 'Pausar' : 'Reanudar',
-            style: const TextStyle(color: Colors.white),
-          ),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            ElevatedButton(
+              onPressed: isRunning ? null : start,
+              child: const Text('Iniciar'),
+            ),
+            const SizedBox(width: 8),
+            ElevatedButton(
+              onPressed: isRunning ? pause : null,
+              child: const Text('Pausar'),
+            ),
+            const SizedBox(width: 8),
+            ElevatedButton(
+              onPressed: reset,
+              child: const Text('Reiniciar'),
+            ),
+          ],
         ),
       ],
     );
