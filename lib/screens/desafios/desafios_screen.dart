@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:lottie/lottie.dart';
 import 'package:healthu/models/desafio_model.dart';
 import 'package:healthu/routes/desafios_routes.dart';
 import 'package:healthu/routes/crear_rutina_routes.dart';
 import 'package:healthu/screens/rutinas/rutinas_generales.dart';
+import 'package:healthu/services/desafio_service.dart';
 
 class DesafiosScreen extends StatefulWidget {
   const DesafiosScreen({super.key});
@@ -17,7 +19,6 @@ class _DesafiosScreenState extends State<DesafiosScreen> {
   List<Desafio> desafios = [];
   bool isLoading = true;
   int? _tappedIndex;
-
   final ScrollController _scrollController = ScrollController();
 
   @override
@@ -38,9 +39,9 @@ class _DesafiosScreenState extends State<DesafiosScreen> {
       Desafio(id: '8', nombre: 'Desafio 8', descripcion: 'Rutina expertaa', desbloqueado: false, completado: false, ejerciciosIds: ['10', '11', '12']),
     ];
 
-    final cargos = await DesafiosRoutes.cargarProgresoDesafios(desafiosBase);
+    final cargados = await DesafiosRoutes.cargarProgresoDesafios(desafiosBase);
     setState(() {
-      desafios = cargos;
+      desafios = cargados;
       isLoading = false;
     });
 
@@ -59,7 +60,6 @@ class _DesafiosScreenState extends State<DesafiosScreen> {
     }
   }
 
-
   void _mostrarMensaje(String mensaje) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text(mensaje), duration: const Duration(seconds: 3)),
@@ -68,6 +68,68 @@ class _DesafiosScreenState extends State<DesafiosScreen> {
 
   void _navegarACrearRutina() {
     Navigator.pushNamed(context, CrearRutinaRoutes.crearRutina);
+  }
+
+  Future<void> _procesarRutinaCompletada(String desafioId) async {
+    // Mostrar animación de desbloqueo
+    await showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => Dialog(
+        backgroundColor: Colors.transparent,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Lottie.asset(
+              'assets/animations/unlock.json',
+              width: 200,
+              height: 200,
+            ),
+            const Text(
+              '¡Desafío completado!',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    // Actualizar localmente
+    setState(() {
+      final index = desafios.indexWhere((d) => d.id == desafioId);
+      if (index != -1) {
+        desafios[index] = desafios[index].copyWith(completado: true);
+        if (index < desafios.length - 1) {
+          desafios[index + 1] = desafios[index + 1].copyWith(desbloqueado: true);
+        }
+      }
+    });
+
+    // Actualizar en backend
+    try {
+      await DesafioService.marcarDesafioCompletado(desafioId);
+      await DesafioService.desbloquearSiguienteDesafio(desafioId);
+      await DesafioService.actualizarPuntuacion('user123', 100);
+      setState(() => puntuacionActual += 100);
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('¡Progreso actualizado correctamente!'),
+          backgroundColor: Colors.green,
+        ),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error al actualizar progreso: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
   }
 
   @override
@@ -174,20 +236,24 @@ class _DesafiosScreenState extends State<DesafiosScreen> {
       itemBuilder: (context, index) {
         final d = desafios[index];
         final isTapped = _tappedIndex == index;
+
         return GestureDetector(
-          onTap: () {
+          onTap: () async {
             if (!d.desbloqueado) {
               _mostrarMensaje('Debes completar el desafío anterior.');
               return;
             }
+
             setState(() => _tappedIndex = index);
-            Future.delayed(const Duration(milliseconds: 300), () {
-              setState(() => _tappedIndex = null);
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const RutinasGenerales()),
-              );
-            });
+            final result = await Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const RutinasGenerales()),
+            );
+
+            setState(() => _tappedIndex = null);
+            if (result == true) {
+              await _procesarRutinaCompletada(d.id);
+            }
           },
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 200),
@@ -198,7 +264,7 @@ class _DesafiosScreenState extends State<DesafiosScreen> {
               borderRadius: BorderRadius.circular(16),
               color: Colors.white,
               boxShadow: isTapped
-                  ? [BoxShadow(color: Colors.black26, blurRadius: 10, offset: Offset(0, 4))]
+                  ? [const BoxShadow(color: Colors.black26, blurRadius: 10, offset: Offset(0, 4))]
                   : [],
             ),
             padding: const EdgeInsets.all(8),

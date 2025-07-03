@@ -3,7 +3,6 @@ import 'package:healthu/screens/rutinas/detalle_rutina.dart';
 import 'package:healthu/widgets/boton_en_imagen.dart';
 import 'package:healthu/widgets/barra_navegacion.dart';
 import 'package:healthu/models/rutina_model.dart';
-import 'package:healthu/screens/rutinas/detalle_rutina_screen.dart';
 
 class RutinasGenerales extends StatefulWidget {
   const RutinasGenerales({super.key});

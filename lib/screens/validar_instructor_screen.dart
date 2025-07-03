@@ -1,32 +1,99 @@
 import 'package:flutter/material.dart';
+import 'package:mobile_scanner/mobile_scanner.dart';
+import 'package:lottie/lottie.dart';
+import 'package:healthu/services/rutina_service.dart';
 
 class ValidarInstructorScreen extends StatefulWidget {
   final String rutinaId;
 
   const ValidarInstructorScreen({
-    Key? key,
+    super.key,
     required this.rutinaId,
-  }) : super(key: key);
+  });
 
   @override
   State<ValidarInstructorScreen> createState() => _ValidarInstructorScreenState();
 }
 
 class _ValidarInstructorScreenState extends State<ValidarInstructorScreen> {
-  bool _isSubmitting = false;
+  MobileScannerController cameraController = MobileScannerController();
+  bool _isValidating = false;
+  bool _qrScanned = false;
 
-  void _submitValidation() async {
-    setState(() => _isSubmitting = true);
-    // TODO: Llamar servicio para notificar al instructor
-    await Future.delayed(const Duration(seconds: 2));
-    setState(() => _isSubmitting = false);
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Solicitud enviada al instructor'),
-        backgroundColor: Colors.green,
-      ),
-    );
-    Navigator.pop(context);
+  @override
+  void dispose() {
+    cameraController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _validateQRCode(String qrData) async {
+    if (_isValidating || _qrScanned) return;
+
+    setState(() => _isValidating = true);
+
+    try {
+      final isValid = await RutinaService.validarQRInstructor(
+        rutinaId: widget.rutinaId,
+        qrCode: qrData,
+      );
+
+      if (isValid) {
+        setState(() => _qrScanned = true);
+        
+        // Mostrar diálogo de éxito
+        await showDialog(
+          // ignore: use_build_context_synchronously
+          context: context,
+          barrierDismissible: false,
+          builder: (_) => AlertDialog(
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Lottie.asset(
+                  'assets/animations/success.json',
+                  width: 150,
+                  height: 150,
+                ),
+                const SizedBox(height: 16),
+                const Text(
+                  '¡Validación exitosa!',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  Navigator.pop(context);
+                  Navigator.pop(context, true); // Retornar éxito
+                },
+                child: const Text('Continuar'),
+              ),
+            ],
+          ),
+        );
+      } else {
+        // ignore: use_build_context_synchronously
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Código QR no válido'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } catch (e) {
+      // ignore: use_build_context_synchronously
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _isValidating = false);
+      }
+    }
   }
 
   @override
@@ -35,29 +102,80 @@ class _ValidarInstructorScreenState extends State<ValidarInstructorScreen> {
       appBar: AppBar(
         title: const Text('Validar con Instructor'),
         backgroundColor: Colors.green[800],
+        actions: [
+          IconButton(
+            icon: ValueListenableBuilder(
+              valueListenable: cameraController.torchState,
+              builder: (context, state, child) {
+                switch (state) {
+                  case TorchState.off:
+                    return const Icon(Icons.flash_off, color: Colors.grey);
+                  case TorchState.on:
+                    return const Icon(Icons.flash_on, color: Colors.yellow);
+                }
+              },
+            ),
+            onPressed: () => cameraController.toggleTorch(),
+          ),
+          IconButton(
+            icon: ValueListenableBuilder(
+              valueListenable: cameraController.cameraFacingState,
+              builder: (context, state, child) {
+                switch (state) {
+                  case CameraFacing.front:
+                    return const Icon(Icons.camera_front);
+                  case CameraFacing.back:
+                    return const Icon(Icons.camera_rear);
+                }
+              },
+            ),
+            onPressed: () => cameraController.switchCamera(),
+          ),
+        ],
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            const Text(
-              'Enviar tu rutina completada al instructor para validación.',
-              style: TextStyle(fontSize: 16),
-            ),
-            const SizedBox(height: 24),
-            ElevatedButton(
-              onPressed: _isSubmitting ? null : _submitValidation,
-              style: ElevatedButton.styleFrom(
-                padding: const EdgeInsets.symmetric(vertical: 16),
-                backgroundColor: Colors.green[800],
+      body: Stack(
+        children: [
+          MobileScanner(
+            controller: cameraController,
+            onDetect: (capture) {
+              final barcodes = capture.barcodes;
+              for (final barcode in barcodes) {
+                if (barcode.rawValue != null) {
+                  _validateQRCode(barcode.rawValue!);
+                  break;
+                }
+              }
+            },
+          ),
+          if (_isValidating)
+            const Center(
+              child: CircularProgressIndicator(
+                valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
               ),
-              child: _isSubmitting
-                  ? const CircularProgressIndicator(color: Colors.white)
-                  : const Text('Enviar a Instructor', style: TextStyle(fontSize: 16)),
             ),
-          ],
-        ),
+          Positioned(
+            bottom: 20,
+            left: 0,
+            right: 0,
+            child: Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.black.withOpacity(0.5),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              margin: const EdgeInsets.symmetric(horizontal: 20),
+              child: Text(
+                'Escanea el código QR del instructor',
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

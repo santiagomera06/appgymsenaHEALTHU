@@ -13,6 +13,9 @@ dependencies:
   flutter_localizations:
     sdk: flutter
   cupertino_icons: ^1.0.8
+  mobile_scanner: ^3.0.0 # Para el escaneo de QR
+  
+  
  
 
   # ——— Fuentes ———
@@ -29,6 +32,7 @@ dependencies:
   image_picker: ^1.0.4
   http: ^1.1.0
   cached_network_image: ^3.3.0  # ← Nueva dependencia para manejo de imágenes
+  lottie: ^3.3.1
 
 dev_dependencies:
   flutter_test:
@@ -41,3 +45,7 @@ flutter:
     - assets/images/full.png
     - assets/images/pecho.png
     - assets/images/musculos.png
+    - assets/images/badge.png
+    - assets/animations/
+    
+

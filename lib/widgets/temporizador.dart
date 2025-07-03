@@ -14,45 +14,52 @@ class TemporizadorWidget extends StatefulWidget {
   });
 
   @override
-  State<TemporizadorWidget> createState() =>
-      TemporizadorWidgetState(); // usa clase pública
+  State<TemporizadorWidget> createState() => TemporizadorWidgetState();
 }
 
-// Cambiamos de privado (_...) a público sin guión bajo
 class TemporizadorWidgetState extends State<TemporizadorWidget> {
   late int _tiempoRestante;
   Timer? _timer;
+  // ignore: unused_field
+  int _tiempoTranscurrido = 0;
 
   bool get isRunning => _timer?.isActive ?? false;
+  int get tiempoTranscurrido => widget.segundos - _tiempoRestante;
 
   @override
   void initState() {
     super.initState();
     _tiempoRestante = widget.segundos;
+    _tiempoTranscurrido = 0;
   }
 
- void start() {
-  if (isRunning) return;
-  // Fuerza rebuild para que el botón cambie de estado
-  setState(() {});
-  _timer = Timer.periodic(const Duration(seconds: 1), (_) {
-    if (_tiempoRestante > 0) {
-      setState(() => _tiempoRestante--);
-    } else {
-      _complete();
-    }
-  });
-}
+  void start() {
+    if (isRunning) return;
+    
+    setState(() {});
+    _timer = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (_tiempoRestante > 0) {
+        setState(() {
+          _tiempoRestante--;
+          _tiempoTranscurrido++;
+        });
+      } else {
+        _complete();
+      }
+    });
+  }
 
-void pause() {
-  _timer?.cancel();
-  // Fuerza rebuild para que el botón cambie de estado
-  setState(() {});
-}
+  void pause() {
+    _timer?.cancel();
+    setState(() {});
+  }
 
   void reset() {
     _timer?.cancel();
-    setState(() => _tiempoRestante = widget.segundos);
+    setState(() {
+      _tiempoRestante = widget.segundos;
+      _tiempoTranscurrido = 0;
+    });
   }
 
   void _complete() {
@@ -70,12 +77,21 @@ void pause() {
   Widget build(BuildContext context) {
     final minutos = (_tiempoRestante ~/ 60).toString().padLeft(2, '0');
     final segundos = (_tiempoRestante % 60).toString().padLeft(2, '0');
+    
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
         Text(
-        '$minutos:$segundos',
-        style: Theme.of(context).textTheme.headlineMedium,
+          '$minutos:$segundos',
+          style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+            fontSize: 48,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          'Tiempo realizado: ${tiempoTranscurrido}s',
+          style: Theme.of(context).textTheme.bodyMedium,
         ),
         const SizedBox(height: 16),
         Row(
@@ -83,17 +99,29 @@ void pause() {
           children: [
             ElevatedButton(
               onPressed: isRunning ? null : start,
-              child: const Text('Iniciar'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.green[800],
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+              ),
+              child: const Text('Iniciar', style: TextStyle(color: Colors.white)),
             ),
-            const SizedBox(width: 8),
+            const SizedBox(width: 12),
             ElevatedButton(
               onPressed: isRunning ? pause : null,
-              child: const Text('Pausar'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.orange[800],
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+              ),
+              child: const Text('Pausar', style: TextStyle(color: Colors.white)),
             ),
-            const SizedBox(width: 8),
+            const SizedBox(width: 12),
             ElevatedButton(
               onPressed: reset,
-              child: const Text('Reiniciar'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.blue[800],
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+              ),
+              child: const Text('Reiniciar', style: TextStyle(color: Colors.white)),
             ),
           ],
         ),
