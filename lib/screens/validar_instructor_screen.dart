@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
+// ignore: unused_import
 import 'package:lottie/lottie.dart';
 import 'package:healthu/services/rutina_service.dart';
+import 'package:healthu/screens/rutinas/actualizar_progreso.dart'; // Asegúrate de importar esta pantalla
 
 class ValidarInstructorScreen extends StatefulWidget {
   final String rutinaId;
@@ -39,39 +41,27 @@ class _ValidarInstructorScreenState extends State<ValidarInstructorScreen> {
 
       if (isValid) {
         setState(() => _qrScanned = true);
-        
-        // Mostrar diálogo de éxito
-        await showDialog(
-          // ignore: use_build_context_synchronously
-          context: context,
-          barrierDismissible: false,
-          builder: (_) => AlertDialog(
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Lottie.asset(
-                  'assets/animations/success.json',
-                  width: 150,
-                  height: 150,
-                ),
-                const SizedBox(height: 16),
-                const Text(
-                  '¡Validación exitosa!',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                ),
-              ],
+
+        // TODO: Reemplazar estos valores con datos reales
+        const String desafioId = 'id_del_desafio_actual';
+        const String userId = 'id_del_usuario';
+        const int puntosGanados = 100;
+
+        // Mostrar pantalla de progreso
+        // ignore: use_build_context_synchronously
+        await Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => ActualizarProgreso(
+              desafioId: desafioId,
+              userId: userId,
+              puntosGanados: puntosGanados,
             ),
-            actions: [
-              TextButton(
-                onPressed: () {
-                  Navigator.pop(context);
-                  Navigator.pop(context, true); // Retornar éxito
-                },
-                child: const Text('Continuar'),
-              ),
-            ],
           ),
         );
+
+        // ignore: use_build_context_synchronously
+        Navigator.pop(context, true); // Retornar éxito
       } else {
         // ignore: use_build_context_synchronously
         ScaffoldMessenger.of(context).showSnackBar(
@@ -164,10 +154,10 @@ class _ValidarInstructorScreenState extends State<ValidarInstructorScreen> {
                 borderRadius: BorderRadius.circular(8),
               ),
               margin: const EdgeInsets.symmetric(horizontal: 20),
-              child: Text(
+              child: const Text(
                 'Escanea el código QR del instructor',
                 textAlign: TextAlign.center,
-                style: const TextStyle(
+                style: TextStyle(
                   color: Colors.white,
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
