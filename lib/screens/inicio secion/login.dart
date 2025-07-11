@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:healthu/models/usuario.dart';
-import 'package:healthu/screens/home%20inicio/home_screen.dart';
+import 'package:healthu/services/login_service.dart';
 
 class Login extends StatefulWidget {
   const Login({super.key});
@@ -20,34 +19,19 @@ class _LoginState extends State<Login> {
     super.dispose();
   }
 
-  void _iniciarSesion() {
-    final usuarioText = usuarioCtrl.text.trim();
-    final claveText = claveCtrl.text.trim();
+  Future<void> _iniciarSesion() async {
+    final email = usuarioCtrl.text.trim();
+    final contrasena = claveCtrl.text.trim();
 
-    // Simulación de validación (aquí va tu lógica real)
-    final esValido = (usuarioText == 'admin' && claveText == '1234');
+    final error = await LoginService().login(email, contrasena);
 
-    if (esValido) {
-      final demoUsuario = Usuario(
-        id: '1',
-        nombre: usuarioText,
-        email: '$usuarioText@example.com',
-        fotoUrl: 'https://via.placeholder.com/150',
-        nivelActual: 'Principiante',
-      );
+    if (!mounted) return;
 
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(
-          builder: (_) => HomeScreen(
-            usuario: demoUsuario,
-            indiceInicial: 2,
-          ),
-        ),
-      );
+    if (error == null) {
+      Navigator.pushReplacementNamed(context, '/home');
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Usuario o clave incorrectos')),
+        SnackBar(content: Text(error)),
       );
     }
   }
@@ -80,7 +64,7 @@ class _LoginState extends State<Login> {
             TextField(
               controller: usuarioCtrl,
               decoration: InputDecoration(
-                labelText: 'Usuario',
+                labelText: 'Correo electrónico',
                 prefixIcon: const Icon(Icons.person),
                 filled: true,
                 fillColor: Colors.white,
@@ -93,7 +77,7 @@ class _LoginState extends State<Login> {
             TextField(
               controller: claveCtrl,
               decoration: InputDecoration(
-                labelText: 'Clave',
+                labelText: 'Contraseña',
                 prefixIcon: const Icon(Icons.lock),
                 filled: true,
                 fillColor: Colors.white,

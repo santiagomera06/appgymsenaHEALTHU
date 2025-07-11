@@ -1,26 +1,40 @@
 import 'dart:convert';
+import 'dart:io';
 import 'package:http/http.dart' as http;
 
 class RegistroService {
-  static const String _baseUrl = 'https://gym-ver2-api-aafaf6c56cad.herokuapp.com';
-
-  static Future<String?> registrarAprendiz(Map<String, dynamic> datos) async {
-    final url = Uri.parse('$_baseUrl/auth/register');
-
+  static Future<String?> registrarAprendiz(Map<String, dynamic> datos, File? imagen) async {
     try {
-      final respuesta = await http.post(
-        url,
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode(datos),
-      );
+      var uri = Uri.parse('http://54.82.114.190:8080/auth/register'); // Cambia por tu URL real
+      var request = http.MultipartRequest('POST', uri);
 
-      if (respuesta.statusCode == 200 || respuesta.statusCode == 201) {
-        return null; // Sin error
+      // Adjuntamos campos del formulario
+      datos.forEach((key, value) {
+        request.fields[key] = value.toString();
+      });
+
+      // Adjuntar imagen si existe
+      if (imagen != null) {
+        request.files.add(await http.MultipartFile.fromPath(
+          'fotoPerfil', // Nombre esperado por el backend
+          imagen.path,
+        ));
+        print('📸 Imagen adjuntada: ${imagen.path}');
       } else {
-        return 'Error: ${respuesta.body}';
+        print('🚫 No se adjunta imagen');
+      }
+
+      var response = await request.send();
+      var body = await response.stream.bytesToString();
+      print('📨 Respuesta del servidor:\nCódigo: ${response.statusCode}\nCuerpo: $body');
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        return null; // Éxito
+      } else {
+        return 'Ocurrió un error: $body';
       }
     } catch (e) {
-      return 'Error de conexión: $e';
+      return 'Error al conectar con el servidor: $e';
     }
   }
 }

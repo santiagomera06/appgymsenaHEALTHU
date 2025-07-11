@@ -7,6 +7,8 @@ import 'package:healthu/models/usuario.dart';
 import 'package:healthu/screens/home%20inicio/home_screen.dart';
 import 'package:healthu/screens/register/register_aprendiz.dart';
 import 'package:healthu/screens/crear%20rutina/crear_rutina_screen.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'dart:convert';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -39,18 +41,25 @@ class HealthuApp extends StatelessWidget {
       initialRoute: '/',
       routes: {
         '/': (context) => const Login(),
+        '/login': (context) => const Login(),
         '/registro': (context) => const RegisterAprendiz(),
-        '/home': (context) {
-          final usuario = ModalRoute.of(context)?.settings.arguments as Usuario?;
-          return HomeScreen(
-            usuario: usuario ?? _usuarioDemo(),
-            indiceInicial: 2,
-          );
-        },
+        '/home': (context) => FutureBuilder<Usuario>(
+          future: _obtenerUsuarioDesdeToken(),
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const Scaffold(
+                body: Center(child: CircularProgressIndicator()),
+              );
+            } else if (snapshot.hasError || !snapshot.hasData) {
+              return const Login();
+            } else {
+              return HomeScreen(usuario: snapshot.data!, indiceInicial: 2);
+            }
+          },
+        ),
         '/crear-rutina': (context) => const CrearRutinaScreen(),
       },
       onGenerateRoute: (settings) {
-        // Manejar rutas no definidas
         return MaterialPageRoute(
           builder: (_) => Scaffold(
             body: Center(
@@ -62,13 +71,26 @@ class HealthuApp extends StatelessWidget {
     );
   }
 
-  Usuario _usuarioDemo() {
-    return Usuario(
-      id: '12345678',
-      nombre: 'Usuario Demo',
-      email: 'demo@example.com',
-      fotoUrl: 'https://via.placeholder.com/150',
-      nivelActual: 'Principiante',
-    );
+  static Future<Usuario> _obtenerUsuarioDesdeToken() async {
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('token');
+
+    if (token == null) throw Exception('Token no encontrado');
+
+    final parts = token.split('.');
+    if (parts.length != 3) throw Exception('Token inválido');
+
+    final payload = utf8.decode(base64Url.decode(base64.normalize(parts[1])));
+    final data = json.decode(payload);
+
+return Usuario(
+  id: data['id_user'].toString(),
+  nombre: data['nombreUsuario'] ?? 'Usuario',
+  email: data['sub'],
+  fotoUrl: 'https://via.placeholder.com/150',
+  nivelActual: data['rol'] ?? 'Aprendiz',
+);
+
+
   }
 }

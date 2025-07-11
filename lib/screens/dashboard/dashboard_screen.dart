@@ -7,7 +7,8 @@ import 'ficha_identificacion.dart';
 import 'tarjetas_dashboard.dart';
 import '../graficas/graficas_dashboard.dart';
 import '../graficas/grafica_anillo.dart';
-import '../editar usuario/editar_usuario_screen.dart';  
+import '../editar usuario/editar_usuario_screen.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class DashboardScreen extends StatefulWidget {
   final Usuario usuario;
@@ -19,11 +20,11 @@ class DashboardScreen extends StatefulWidget {
 
 class _DashboardScreenState extends State<DashboardScreen> {
   late Usuario usuario;
-  
+
   @override
   void initState() {
     super.initState();
-    usuario = widget.usuario;     
+    usuario = widget.usuario;
   }
 
   List<Widget> _buildDrawerItems() {
@@ -58,8 +59,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
       ListTile(
         leading: const Icon(Icons.logout),
         title: const Text('Cerrar sesión'),
-        onTap: () {
+        onTap: () async {
           Navigator.pop(context);
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.clear(); // ✅ Limpia token y datos
           Navigator.pushReplacementNamed(context, '/login');
         },
       ),
@@ -101,18 +104,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
     ];
 
     final tarjetas = <CardDataModel>[
-      CardDataModel(
-          title: 'Puntos totales', value: '1 200', icon: Icons.star),
+      CardDataModel(title: 'Puntos totales', value: '1 200', icon: Icons.star),
       CardDataModel(
           title: 'Desafíos completados',
           value: '45',
           icon: Icons.fitness_center),
+      CardDataModel(title: 'Promedio diario', value: '3', icon: Icons.bar_chart),
       CardDataModel(
-          title: 'Promedio diario', value: '3', icon: Icons.bar_chart),
-      CardDataModel(
-          title: 'Nivel actual',
-          value: 'Avanzado',
-          icon: Icons.trending_up),
+          title: 'Nivel actual', value: 'Avanzado', icon: Icons.trending_up),
     ];
 
     return Scaffold(
@@ -128,7 +127,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
           ),
         ],
       ),
-
       endDrawer: Drawer(
         child: ListView(
           padding: EdgeInsets.zero,
@@ -145,7 +143,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
           ],
         ),
       ),
-
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: ListView(
@@ -159,8 +156,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             ),
             Center(
                 child: Text(fechaHoy,
-                    style:
-                        const TextStyle(fontSize: 14, color: Colors.grey))),
+                    style: const TextStyle(fontSize: 14, color: Colors.grey))),
             const SizedBox(height: 8),
             Center(
                 child: Text(saludo,
@@ -169,25 +165,20 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         fontStyle: FontStyle.italic,
                         color: Colors.green))),
             const SizedBox(height: 24),
-
             TarjetasDashboard(items: tarjetas),
             const SizedBox(height: 32),
-
             const TextoSeccion('Progreso de Nivel'),
             const BarraProgreso(),
             const SizedBox(height: 32),
-
             const TextoSeccion('Progreso semanal de desafíos'),
             const SizedBox(height: 16),
             GraficaBarras(valores: datosSemana),
             const SizedBox(height: 32),
             GraficaCircular(sections: actividades),
-
             const SizedBox(height: 32),
             const TextoSeccion('Calorías por actividad (semana)'),
             const SizedBox(height: 16),
             const GraficaBarrasApiladas(),
-
             const SizedBox(height: 32),
             const TextoSeccion('Comparar variables'),
             const SelectorDispersion(),
