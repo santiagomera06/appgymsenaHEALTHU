@@ -16,6 +16,7 @@ class DesafioService {
       puntuacion: 0,
       ejerciciosIds: ['mock-ej-1', 'mock-ej-2', 'mock-ej-3'],
     ),
+    
     Desafio(
       id: 'mock-2',
       nombre: 'Desafío Intermedio',
