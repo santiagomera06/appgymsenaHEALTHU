@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:lottie/lottie.dart';
-import 'package:healthu/models/desafio_model.dart';
 import 'package:healthu/services/desafio_service.dart';
 
 class ActualizarProgreso extends StatefulWidget {
@@ -31,18 +30,6 @@ class _ActualizarProgresoState extends State<ActualizarProgreso> {
 
   Future<void> _actualizarProgreso() async {
     try {
-      // 1. Marcar desafío como completado
-      await DesafioService.marcarDesafioCompletado(widget.desafioId);
-      
-      // 2. Desbloquear siguiente desafío
-      await DesafioService.desbloquearSiguienteDesafio(widget.desafioId);
-      
-      // 3. Actualizar puntuación del usuario
-      await DesafioService.actualizarPuntuacion(
-        widget.userId, 
-        widget.puntosGanados
-      );
-      
       setState(() => _progresoActualizado = true);
     } catch (e) {
       setState(() => _error = true);
@@ -76,22 +63,19 @@ class _ActualizarProgresoState extends State<ActualizarProgreso> {
               const SizedBox(height: 10),
               Text(
                 '+${widget.puntosGanados} puntos',
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 18,
-                ),
+                style: const TextStyle(color: Colors.white, fontSize: 18),
               ),
               const SizedBox(height: 30),
               ElevatedButton(
                 onPressed: () => Navigator.pop(context),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.green[800],
-                  padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 32,
+                    vertical: 12,
+                  ),
                 ),
-                child: const Text(
-                  'Continuar',
-                  style: TextStyle(fontSize: 18),
-                ),
+                child: const Text('Continuar', style: TextStyle(fontSize: 18)),
               ),
             ] else if (_error) ...[
               const Icon(Icons.error, color: Colors.red, size: 80),
@@ -109,22 +93,19 @@ class _ActualizarProgresoState extends State<ActualizarProgreso> {
                 onPressed: () => Navigator.pop(context),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.red[800],
-                  padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 32,
+                    vertical: 12,
+                  ),
                 ),
-                child: const Text(
-                  'Volver',
-                  style: TextStyle(fontSize: 18),
-                ),
+                child: const Text('Volver', style: TextStyle(fontSize: 18)),
               ),
             ] else ...[
               const CircularProgressIndicator(color: Colors.white),
               const SizedBox(height: 20),
               const Text(
                 'Actualizando progreso...',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 18,
-                ),
+                style: TextStyle(color: Colors.white, fontSize: 18),
               ),
             ],
           ],

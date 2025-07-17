@@ -4,7 +4,7 @@ import 'package:healthu/models/crear_rutina_model.dart' as crear_rutina;
 import 'package:healthu/models/rutina_model.dart' as rutina_model;
 
 class RutinaService {
-  static const String baseUrl = 'https://gym-ver2-api-aafaf6c56cad.herokuapp.com';
+  static const String baseUrl = 'http://54.227.38.102:8080';
 
   // Rutina mock para fallback
   static final _mockRutina = rutina_model.RutinaDetalle(
@@ -49,10 +49,12 @@ class RutinaService {
   // Obtener una rutina específica
   static Future<rutina_model.RutinaDetalle> obtenerRutina(String id) async {
     try {
-      final response = await http.get(
-        Uri.parse('$baseUrl/rutina/obtenerRutina/$id'),
-        headers: {'Accept': 'application/json'},
-      ).timeout(const Duration(seconds: 5));
+      final response = await http
+          .get(
+            Uri.parse('$baseUrl/rutina/obtenerRutina/$id'),
+            headers: {'Accept': 'application/json'},
+          )
+          .timeout(const Duration(seconds: 5));
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
@@ -69,10 +71,12 @@ class RutinaService {
   // Obtener todas las rutinas
   static Future<List<rutina_model.RutinaDetalle>> obtenerRutinas() async {
     try {
-      final response = await http.get(
-        Uri.parse('$baseUrl/rutina/obtenerRutinas'),
-        headers: {'Accept': 'application/json'},
-      ).timeout(const Duration(seconds: 5));
+      final response = await http
+          .get(
+            Uri.parse('$baseUrl/rutina/obtenerRutinas'),
+            headers: {'Accept': 'application/json'},
+          )
+          .timeout(const Duration(seconds: 5));
 
       if (response.statusCode == 200) {
         final List<dynamic> data = json.decode(response.body);
@@ -98,13 +102,18 @@ class RutinaService {
           'imageUrl': rutina.fotoRutina,
           'focus': rutina.enfoque,
           'level': rutina.dificultad,
-          'practices': rutina.ejercicios.map((e) => {
-            'id': e.idEjercicio,
-            'repetition': e.series,
-            'target': e.repeticion,
-            'value': e.carga,
-            'timeplacement': e.duracion,
-          }).toList(),
+          'practices':
+              rutina.ejercicios
+                  .map(
+                    (e) => {
+                      'id': e.idEjercicio,
+                      'repetition': e.series,
+                      'target': e.repeticion,
+                      'value': e.carga,
+                      'timeplacement': e.duracion,
+                    },
+                  )
+                  .toList(),
         }),
       );
 
@@ -120,19 +129,26 @@ class RutinaService {
     Map<String, dynamic> datosActualizados,
   ) async {
     try {
-      final response = await http.put(
-        Uri.parse('$baseUrl/rutina/actualizar/$rutinaId'),
-        headers: {'Content-Type': 'application/json'},
-        body: json.encode({
-          'idButton': rutinaId,
-          'practices': datosActualizados['ejercicios']?.map((e) => {
-                'id': e.id,
-                'completed': e.completado,
-                'time': e.tiempoRealizado,
-              }).toList(),
-          'completed': datosActualizados['completada'],
-        }),
-      ).timeout(const Duration(seconds: 5));
+      final response = await http
+          .put(
+            Uri.parse('$baseUrl/rutina/actualizar/$rutinaId'),
+            headers: {'Content-Type': 'application/json'},
+            body: json.encode({
+              'idButton': rutinaId,
+              'practices':
+                  datosActualizados['ejercicios']
+                      ?.map(
+                        (e) => {
+                          'id': e.id,
+                          'completed': e.completado,
+                          'time': e.tiempoRealizado,
+                        },
+                      )
+                      .toList(),
+              'completed': datosActualizados['completada'],
+            }),
+          )
+          .timeout(const Duration(seconds: 5));
 
       return response.statusCode == 200;
     } catch (e) {
@@ -148,7 +164,8 @@ class RutinaService {
   }) async {
     try {
       // Validación mock para entorno de desarrollo
-      if (qrCode == "HEALTHU_VALIDACION_INSTRUCTOR|123e4567-e89b-12d3-a456-426614174000") {
+      if (qrCode ==
+          "HEALTHU_VALIDACION_INSTRUCTOR|123e4567-e89b-12d3-a456-426614174000") {
         return true;
       }
 
@@ -156,10 +173,7 @@ class RutinaService {
       final response = await http.post(
         Uri.parse('$baseUrl/rutina/validarQR'),
         headers: {'Content-Type': 'application/json'},
-        body: json.encode({
-          'rutinaId': rutinaId,
-          'qrCode': qrCode,
-        }),
+        body: json.encode({'rutinaId': rutinaId, 'qrCode': qrCode}),
       );
 
       if (response.statusCode == 200) {
@@ -170,12 +184,13 @@ class RutinaService {
       return false;
     } catch (e) {
       print('Error en validación QR (simulando éxito en desarrollo): $e');
-      return true; // En desarrollo, simula éxito
+      return true;
     }
   }
 
-  // Mapear datos desde API
-  static rutina_model.RutinaDetalle _mapearRutinaDesdeApi(Map<String, dynamic> data) {
+  static rutina_model.RutinaDetalle _mapearRutinaDesdeApi(
+    Map<String, dynamic> data,
+  ) {
     return rutina_model.RutinaDetalle(
       id: data['identifier']?.toString() ?? '0',
       nombre: data['name'] ?? 'Rutina sin nombre',
@@ -187,7 +202,9 @@ class RutinaService {
     );
   }
 
-  static List<rutina_model.EjercicioRutina> _mapearEjercicios(List<dynamic> practices) {
+  static List<rutina_model.EjercicioRutina> _mapearEjercicios(
+    List<dynamic> practices,
+  ) {
     return practices.map((practice) {
       return rutina_model.EjercicioRutina(
         id: practice['id']?.toString() ?? '0',

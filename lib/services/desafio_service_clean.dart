@@ -4,17 +4,30 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../config/api_config.dart';
 
 class DesafioService {
-  /// Obtiene el token de autenticación guardado
   static Future<String?> _getToken() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     return prefs.getString('token');
   }
 
-  /// Crea headers con autenticación
   static Future<Map<String, String>> _getAuthHeaders() async {
     final token = await _getToken();
+    print('Token en uso: $token');
 
-    return {
+    if (token != null) {
+      try {
+        final parts = token.split('.');
+        if (parts.length >= 2) {
+          final payload = parts[1];
+          final paddedPayload = payload + '=' * (4 - payload.length % 4);
+          final decoded = utf8.decode(base64Decode(paddedPayload));
+          print('Datos del token decodificado: $decoded');
+        }
+      } catch (e) {
+        print('Error decodificando token: $e');
+      }
+    }
+
+    final headers = {
       'Content-Type': 'application/json',
       'Accept': '*/*',
       'Accept-Encoding': 'gzip, deflate, br',
@@ -22,74 +35,58 @@ class DesafioService {
       'Connection': 'keep-alive',
       if (token != null) 'Authorization': 'Bearer $token',
     };
+    print('Headers enviados: $headers');
+    return headers;
   }
 
   static Future<Map<String, dynamic>?> obtenerDesafioActual() async {
     try {
       final headers = await _getAuthHeaders();
       final url = ApiConfig.getUrl('/desafios/obtenerDesafioActual');
+      print('GET $url');
 
       final response = await http
           .get(Uri.parse(url), headers: headers)
           .timeout(const Duration(seconds: 60));
 
+      print('Status: ${response.statusCode}');
+      print('Response: ${response.body}');
+
       if (response.statusCode == 200) {
         return json.decode(response.body);
       } else {
-        print(' Error obtenerDesafioActual: ${response.statusCode}');
+        print('Error: código ${response.statusCode}');
         return null;
       }
     } catch (e) {
-      print(' Error al obtener desafío actual: $e');
+      print('Error al obtener desafío actual: $e');
       return null;
     }
   }
 
-  static Future<Map<String, dynamic>?> iniciarRutinaDesafio(
-    int idDesafio,
-  ) async {
+  static Future<bool> iniciarRutinaDesafio(int idDesafio) async {
     try {
       final headers = await _getAuthHeaders();
       final url = ApiConfig.getUrl('/rutina-realizada/desafio/$idDesafio');
+      print('PATCH $url');
 
       final response = await http
           .patch(Uri.parse(url), headers: headers)
           .timeout(const Duration(seconds: 60));
 
-      if (response.statusCode == 200 || response.statusCode == 201) {
-        if (response.body.isNotEmpty && response.body != 'null') {
-          try {
-            final responseData = json.decode(response.body);
+      print('Status: ${response.statusCode}');
+      print('Response: ${response.body}');
 
-            if (responseData is Map<String, dynamic>) {
-              if (responseData.containsKey('idDesafioRealizado')) {
-                print(
-                  ' idDesafioRealizado: ${responseData['idDesafioRealizado']}',
-                );
-              }
-            }
-            return responseData;
-          } catch (e) {
-            return {
-              'mensaje': response.body,
-              'success': true,
-              'statusCode': response.statusCode,
-            };
-          }
-        } else {
-          return {
-            'mensaje': 'Respuesta vacía pero exitosa',
-            'success': true,
-            'statusCode': response.statusCode,
-          };
-        }
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        print(' Rutina iniciada exitosamente');
+        return true;
       } else {
-        print(' Error iniciarRutinaDesafio: ${response.statusCode}');
-        return null;
+        print(' Error: código ${response.statusCode}');
+        return false;
       }
     } catch (e) {
-      print(' Error al iniciar rutina desafío: $e');
-      return null;
+      print('Error al iniciar rutina: $e');
+      return false;
     }
   }
 
@@ -105,6 +102,8 @@ class DesafioService {
       };
 
       final url = ApiConfig.getUrl('/progreso/RegistrarProgreso');
+      print('POST $url');
+      print('Body: $requestBody');
 
       final response = await http
           .post(
@@ -114,6 +113,9 @@ class DesafioService {
           )
           .timeout(const Duration(seconds: 60));
 
+      print('Status: ${response.statusCode}');
+      print('Response: ${response.body}');
+
       if (response.statusCode == 200 || response.statusCode == 201) {
         try {
           return json.decode(response.body);
@@ -121,11 +123,11 @@ class DesafioService {
           return {'respuesta': response.body, 'success': true};
         }
       } else {
-        print(' Error registrarProgreso: ${response.statusCode}');
+        print(' Error: código ${response.statusCode}');
         return null;
       }
     } catch (e) {
-      print(' Error al registrar progreso: $e');
+      print('Error al registrar progreso: $e');
       return null;
     }
   }
@@ -142,6 +144,8 @@ class DesafioService {
       };
 
       final url = ApiConfig.getUrl('/rutina-realizada/serie');
+      print('POST $url');
+      print('Body: $requestBody');
 
       final response = await http
           .post(
@@ -151,10 +155,13 @@ class DesafioService {
           )
           .timeout(const Duration(seconds: 60));
 
+      print('Status: ${response.statusCode}');
+      print('Response: ${response.body}');
+
       if (response.statusCode == 200) {
         return json.decode(response.body);
       } else {
-        print('Error actualizarSerie: ${response.statusCode}');
+        print(' Error: código ${response.statusCode}');
         return null;
       }
     } catch (e) {

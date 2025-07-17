@@ -10,11 +10,7 @@ class HomeScreen extends StatefulWidget {
   final Usuario usuario;
   final int indiceInicial;
 
-  const HomeScreen({
-    super.key,
-    required this.usuario,
-    this.indiceInicial = 0,
-  });
+  const HomeScreen({super.key, required this.usuario, this.indiceInicial = 0});
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();

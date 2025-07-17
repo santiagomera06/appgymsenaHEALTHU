@@ -21,18 +21,12 @@ class HealthuBottomNavBar extends StatelessWidget {
       unselectedItemColor: Colors.white70,
       onTap: onTap,
       items: const [
-        BottomNavigationBarItem(
-          icon: Icon(Icons.school),
-          label: 'Desafíos',
-        ),
+        BottomNavigationBarItem(icon: Icon(Icons.school), label: 'Desafíos'),
         BottomNavigationBarItem(
           icon: Icon(Icons.emoji_events),
           label: 'Clasificación',
         ),
-        BottomNavigationBarItem(
-          icon: Icon(Icons.person),
-          label: 'Perfil',
-        ),
+        BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Perfil'),
       ],
     );
   }

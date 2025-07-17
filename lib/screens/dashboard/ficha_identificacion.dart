@@ -14,7 +14,7 @@ class FichaIdentificacion extends StatelessWidget {
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,          // para alinear arriba
+          crossAxisAlignment: CrossAxisAlignment.start, // para alinear arriba
           children: [
             // ▸ Foto (igual que antes)
             CircleAvatar(
@@ -38,8 +38,8 @@ class FichaIdentificacion extends StatelessWidget {
                   const SizedBox(height: 4),
                   Text(
                     'Ficha de identificación: ${usuario.id}',
-                     style: const TextStyle(fontSize: 14, color: Colors.grey),
-                   ),
+                    style: const TextStyle(fontSize: 14, color: Colors.grey),
+                  ),
 
                   const SizedBox(height: 2),
                   Text(
@@ -48,16 +48,20 @@ class FichaIdentificacion extends StatelessWidget {
                   ),
                   const SizedBox(height: 6),
 
-                  // 🟢 NUEVO nivel actual
                   Row(
                     children: [
-                      const Icon(Icons.trending_up,
-                          size: 16, color: Colors.green),
+                      const Icon(
+                        Icons.trending_up,
+                        size: 16,
+                        color: Colors.green,
+                      ),
                       const SizedBox(width: 4),
                       Text(
                         'Nivel actual: ${usuario.nivelActual}',
                         style: const TextStyle(
-                            fontSize: 12, fontWeight: FontWeight.w500),
+                          fontSize: 12,
+                          fontWeight: FontWeight.w500,
+                        ),
                       ),
                     ],
                   ),

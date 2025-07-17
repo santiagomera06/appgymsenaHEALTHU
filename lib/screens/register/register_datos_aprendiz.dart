@@ -1,8 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:healthu/services/registro_service.dart';
-import 'package:intl/intl.dart';
-
 
 class RegisterDatosAprendiz extends StatefulWidget {
   final Map<String, String> datosUsuario;
@@ -30,70 +28,60 @@ class _RegisterDatosAprendizState extends State<RegisterDatosAprendiz> {
   String? jornadaSeleccionada;
   String? nivelFisicoSeleccionado;
 
-Future<void> registrar() async {
- final raw = widget.datosUsuario["fechaNacimiento"]!.trim();
-final dt  = DateTime.parse(raw);
-String fechaFormateada = dt.millisecondsSinceEpoch.toString();
-// p.ej. "949382400000"
+  Future<void> registrar() async {
+    final raw = widget.datosUsuario["fechaNacimiento"]!.trim();
+    final dt = DateTime.parse(raw);
+    String fechaFormateada = dt.millisecondsSinceEpoch.toString();
+    // p.ej. "949382400000"
 
+    print('📅 Fecha formateada enviada al backend: $fechaFormateada');
 
+    final datosCompletos = {
+      "nombreUsuario": widget.datosUsuario["nombreUsuario"]?.trim() ?? '',
+      "emailUsuario": widget.datosUsuario["emailUsuario"]?.trim() ?? '',
+      "contrasenaUsuario":
+          widget.datosUsuario["contrasenaUsuario"]?.trim() ?? '',
+      "apellidos": widget.datosUsuario["apellidos"]?.trim() ?? '',
+      "nombres": widget.datosUsuario["nombres"]?.trim() ?? '',
+      "telefono": widget.datosUsuario["telefono"]?.trim() ?? '',
+      "identificacion": widget.datosUsuario["identificacion"]?.trim() ?? '',
+      "fechaNacimiento": fechaFormateada,
+      "estado": widget.datosUsuario["estado"]?.trim() ?? 'Activo',
+      "sexo": widget.datosUsuario["sexo"]?.trim() ?? '',
 
+      // Convertidos a String
+      "estatura": campos["estatura"]?.text.trim() ?? '0',
+      "peso": campos["peso"]?.text.trim() ?? '0',
+      "ficha": campos["ficha"]?.text.trim() ?? '0',
+      "horasAcumuladas": campos["horasAcumuladas"]?.text.trim() ?? '0',
+      "puntosAcumulados": campos["puntosAcumulados"]?.text.trim() ?? '0',
 
+      "jornada": jornadaSeleccionada ?? '',
+      "nivelFisico": nivelFisicoSeleccionado ?? '',
+    };
 
-  print('📅 Fecha formateada enviada al backend: $fechaFormateada');
+    datosCompletos.forEach((key, value) {
+      print("$key: $value");
+    });
 
-  // ✅ Limpiar datosUsuario y convertir campos numéricos
-  final datosCompletos = {
-  "nombreUsuario": widget.datosUsuario["nombreUsuario"]?.trim() ?? '',
-  "emailUsuario": widget.datosUsuario["emailUsuario"]?.trim() ?? '',
-  "contrasenaUsuario": widget.datosUsuario["contrasenaUsuario"]?.trim() ?? '',
-  "apellidos": widget.datosUsuario["apellidos"]?.trim() ?? '',
-  "nombres": widget.datosUsuario["nombres"]?.trim() ?? '',
-  "telefono": widget.datosUsuario["telefono"]?.trim() ?? '',
-  "identificacion": widget.datosUsuario["identificacion"]?.trim() ?? '',
-  "fechaNacimiento": fechaFormateada,
-  "estado": widget.datosUsuario["estado"]?.trim() ?? 'Activo',
-  "sexo": widget.datosUsuario["sexo"]?.trim() ?? '',
-
-  // Convertidos a String
-  "estatura": campos["estatura"]?.text.trim() ?? '0',
-  "peso": campos["peso"]?.text.trim() ?? '0',
-  "ficha": campos["ficha"]?.text.trim() ?? '0',
-  "horasAcumuladas": campos["horasAcumuladas"]?.text.trim() ?? '0',
-  "puntosAcumulados": campos["puntosAcumulados"]?.text.trim() ?? '0',
-
-  "jornada": jornadaSeleccionada ?? '',
-  "nivelFisico": nivelFisicoSeleccionado ?? '',
-};
-
-
-  print("🟢 Enviando datos al backend:");
-  datosCompletos.forEach((key, value) {
-    print("$key: $value");
-  });
-
- 
-  final error = await RegistroService.registrarAprendiz(
-  datosCompletos,
-  widget.imagenPerfil, // ✅ Ya se está enviando correctamente
-);
-
-  if (!mounted) return;
-
-  if (error == null) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Registro exitoso. Ahora inicia sesión.'),
-      ),
+    final error = await RegistroService.registrarAprendiz(
+      datosCompletos,
+      widget.imagenPerfil,
     );
-    Navigator.pushReplacementNamed(context, '/login');
-  } else {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(error)),
-    );
+
+    if (!mounted) return;
+
+    if (error == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Registro exitoso. Ahora inicia sesión.')),
+      );
+      Navigator.pushReplacementNamed(context, '/login');
+    } else {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(error)));
+    }
   }
-}
-
 
   InputDecoration decoracionCampo(String label, IconData icono) {
     return InputDecoration(
@@ -153,35 +141,47 @@ String fechaFormateada = dt.millisecondsSinceEpoch.toString();
 
                   const SizedBox(height: 12),
                   DropdownButtonFormField<String>(
-                    decoration: decoracionCampo("nivelFisico", Icons.fitness_center),
+                    decoration: decoracionCampo(
+                      "nivelFisico",
+                      Icons.fitness_center,
+                    ),
                     value: nivelFisicoSeleccionado,
-                    onChanged: (value) => setState(() => nivelFisicoSeleccionado = value),
-                    items: nivelesFisicos
-                        .map((nivel) => DropdownMenuItem(
-                              value: nivel,
-                              child: Text(nivel),
-                            ))
-                        .toList(),
+                    onChanged:
+                        (value) =>
+                            setState(() => nivelFisicoSeleccionado = value),
+                    items:
+                        nivelesFisicos
+                            .map(
+                              (nivel) => DropdownMenuItem(
+                                value: nivel,
+                                child: Text(nivel),
+                              ),
+                            )
+                            .toList(),
                   ),
 
                   const SizedBox(height: 12),
                   DropdownButtonFormField<String>(
                     decoration: decoracionCampo("jornada", Icons.schedule),
                     value: jornadaSeleccionada,
-                    onChanged: (value) => setState(() => jornadaSeleccionada = value),
-                    items: jornadas
-                        .map((j) => DropdownMenuItem(
-                              value: j,
-                              child: Text(j),
-                            ))
-                        .toList(),
+                    onChanged:
+                        (value) => setState(() => jornadaSeleccionada = value),
+                    items:
+                        jornadas
+                            .map(
+                              (j) => DropdownMenuItem(value: j, child: Text(j)),
+                            )
+                            .toList(),
                   ),
 
                   const SizedBox(height: 24),
                   ElevatedButton.icon(
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.green,
-                      padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 40),
+                      padding: const EdgeInsets.symmetric(
+                        vertical: 16,
+                        horizontal: 40,
+                      ),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(10),
                       ),
@@ -202,4 +202,3 @@ String fechaFormateada = dt.millisecondsSinceEpoch.toString();
     );
   }
 }
-

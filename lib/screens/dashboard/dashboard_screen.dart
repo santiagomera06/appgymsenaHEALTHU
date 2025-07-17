@@ -3,6 +3,8 @@ import 'package:intl/intl.dart';
 import 'package:healthu/models/usuario.dart';
 import '../../widgets/selector_dispersion.dart';
 import '../../widgets/graficas_extra.dart';
+import '../../widgets/progreso_desafios_card.dart';
+import '../../widgets/notificaciones_widget.dart';
 import 'ficha_identificacion.dart';
 import 'tarjetas_dashboard.dart';
 import '../graficas/graficas_dashboard.dart';
@@ -62,7 +64,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         onTap: () async {
           Navigator.pop(context);
           final prefs = await SharedPreferences.getInstance();
-          await prefs.clear(); // ✅ Limpia token y datos
+          await prefs.clear();
           Navigator.pushReplacementNamed(context, '/login');
         },
       ),
@@ -74,8 +76,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
     return hora < 12
         ? '¡Buenos días!'
         : hora < 18
-            ? '¡Buenas tardes!'
-            : '¡Buenas noches!';
+        ? '¡Buenas tardes!'
+        : '¡Buenas noches!';
   }
 
   @override
@@ -87,31 +89,42 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
     final actividades = <PieSectionDataModel>[
       PieSectionDataModel(
-          value: 35,
-          color: Colors.green,
-          label: 'Cardio',
-          textColor: Colors.white),
+        value: 35,
+        color: Colors.green,
+        label: 'Cardio',
+        textColor: Colors.white,
+      ),
       PieSectionDataModel(
-          value: 35,
-          color: Colors.lightGreen,
-          label: 'Fuerza',
-          textColor: Colors.black),
+        value: 35,
+        color: Colors.lightGreen,
+        label: 'Fuerza',
+        textColor: Colors.black,
+      ),
       PieSectionDataModel(
-          value: 30,
-          color: Colors.grey.shade300,
-          label: 'Descanso',
-          textColor: Colors.black),
+        value: 30,
+        color: Colors.grey.shade300,
+        label: 'Descanso',
+        textColor: Colors.black,
+      ),
     ];
 
     final tarjetas = <CardDataModel>[
       CardDataModel(title: 'Puntos totales', value: '1 200', icon: Icons.star),
       CardDataModel(
-          title: 'Desafíos completados',
-          value: '45',
-          icon: Icons.fitness_center),
-      CardDataModel(title: 'Promedio diario', value: '3', icon: Icons.bar_chart),
+        title: 'Desafíos completados',
+        value: '45',
+        icon: Icons.fitness_center,
+      ),
       CardDataModel(
-          title: 'Nivel actual', value: 'Avanzado', icon: Icons.trending_up),
+        title: 'Promedio diario',
+        value: '3',
+        icon: Icons.bar_chart,
+      ),
+      CardDataModel(
+        title: 'Nivel actual',
+        value: 'Avanzado',
+        icon: Icons.trending_up,
+      ),
     ];
 
     return Scaffold(
@@ -120,10 +133,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
         centerTitle: true,
         actions: [
           Builder(
-            builder: (context) => IconButton(
-              icon: const Icon(Icons.more_vert),
-              onPressed: () => Scaffold.of(context).openEndDrawer(),
-            ),
+            builder:
+                (context) => IconButton(
+                  icon: const Icon(Icons.more_vert),
+                  onPressed: () => Scaffold.of(context).openEndDrawer(),
+                ),
           ),
         ],
       ),
@@ -140,6 +154,33 @@ class _DashboardScreenState extends State<DashboardScreen> {
               decoration: const BoxDecoration(color: Colors.green),
             ),
             ..._buildDrawerItems(),
+            // 📊 Nueva opción: Estadísticas Detalladas
+            ListTile(
+              leading: const Icon(
+                Icons.analytics_outlined,
+                color: Colors.green,
+              ),
+              title: const Text('Estadísticas Detalladas'),
+              onTap: () {
+                Navigator.pop(context);
+                Navigator.pushNamed(context, '/progreso-estadisticas');
+              },
+            ),
+            // 🔔 Nueva opción: Notificaciones
+            ListTile(
+              leading: const Icon(
+                Icons.notifications_outlined,
+                color: Colors.green,
+              ),
+              title: const Text('Configurar Notificaciones'),
+              onTap: () {
+                Navigator.pop(context);
+                showDialog(
+                  context: context,
+                  builder: (context) => const NotificacionesWidget(),
+                );
+              },
+            ),
           ],
         ),
       ),
@@ -150,21 +191,36 @@ class _DashboardScreenState extends State<DashboardScreen> {
             FichaIdentificacion(usuario: usuario),
             const SizedBox(height: 12),
             Center(
-              child: Text('Bienvenido, ${usuario.nombre.split(' ')[0]}',
-                  style: const TextStyle(
-                      fontSize: 20, fontWeight: FontWeight.w600)),
+              child: Text(
+                'Bienvenido, ${usuario.nombre.split(' ')[0]}',
+                style: const TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
             ),
             Center(
-                child: Text(fechaHoy,
-                    style: const TextStyle(fontSize: 14, color: Colors.grey))),
+              child: Text(
+                fechaHoy,
+                style: const TextStyle(fontSize: 14, color: Colors.grey),
+              ),
+            ),
             const SizedBox(height: 8),
             Center(
-                child: Text(saludo,
-                    style: const TextStyle(
-                        fontSize: 14,
-                        fontStyle: FontStyle.italic,
-                        color: Colors.green))),
+              child: Text(
+                saludo,
+                style: const TextStyle(
+                  fontSize: 14,
+                  fontStyle: FontStyle.italic,
+                  color: Colors.green,
+                ),
+              ),
+            ),
             const SizedBox(height: 24),
+
+            const ProgresoDesafiosCard(),
+            const SizedBox(height: 24),
+
             TarjetasDashboard(items: tarjetas),
             const SizedBox(height: 32),
             const TextoSeccion('Progreso de Nivel'),

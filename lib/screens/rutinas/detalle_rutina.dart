@@ -1,16 +1,23 @@
 import 'package:flutter/material.dart';
 import 'package:healthu/models/rutina_model.dart';
 import 'package:healthu/screens/rutinas/ejercicio_actual_screen.dart';
-class DetalleRutinaScreen extends StatelessWidget {
+import 'package:healthu/services/desafio_service.dart';
+
+class DetalleRutinaScreen extends StatefulWidget {
   final RutinaDetalle rutina;
 
   const DetalleRutinaScreen({super.key, required this.rutina});
 
   @override
+  State<DetalleRutinaScreen> createState() => _DetalleRutinaScreenState();
+}
+
+class _DetalleRutinaScreenState extends State<DetalleRutinaScreen> {
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(rutina.nombre),
+        title: Text(widget.rutina.nombre),
         backgroundColor: Colors.green[800],
       ),
       body: SingleChildScrollView(
@@ -22,15 +29,16 @@ class DetalleRutinaScreen extends StatelessWidget {
             ClipRRect(
               borderRadius: BorderRadius.circular(12),
               child: Image.network(
-                rutina.imagenUrl,
+                widget.rutina.imagenUrl,
                 height: 200,
                 width: double.infinity,
                 fit: BoxFit.cover,
-                errorBuilder: (_, __, ___) => Container(
-                  height: 200,
-                  color: Colors.grey[200],
-                  child: const Icon(Icons.fitness_center, size: 50),
-                ),
+                errorBuilder:
+                    (_, __, ___) => Container(
+                      height: 200,
+                      color: Colors.grey[200],
+                      child: const Icon(Icons.fitness_center, size: 50),
+                    ),
               ),
             ),
             const SizedBox(height: 16),
@@ -38,7 +46,7 @@ class DetalleRutinaScreen extends StatelessWidget {
             // Nivel de dificultad
             Chip(
               label: Text(
-                rutina.nivel,
+                widget.rutina.nivel,
                 style: const TextStyle(color: Colors.white),
               ),
               backgroundColor: Colors.orange,
@@ -56,7 +64,7 @@ class DetalleRutinaScreen extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             Text(
-              rutina.descripcion,
+              widget.rutina.descripcion,
               style: const TextStyle(fontSize: 16),
             ),
             const SizedBox(height: 24),
@@ -71,24 +79,16 @@ class DetalleRutinaScreen extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 8),
-            ...rutina.ejercicios.map((ejercicio) => _buildEjercicioCard(ejercicio)).toList(),
+            ...widget.rutina.ejercicios.map(
+              (ejercicio) => _buildEjercicioCard(ejercicio),
+            ),
           ],
         ),
       ),
       bottomNavigationBar: Padding(
         padding: const EdgeInsets.all(16),
         child: ElevatedButton(
-          onPressed: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (_) => EjercicioActualScreen(
-                  rutina: rutina,
-                  ejercicioIndex: 0,
-                ),
-              ),
-            );
-          },
+          onPressed: () => _iniciarRutinaConEndpoint(context, widget.rutina),
           style: ElevatedButton.styleFrom(
             backgroundColor: Colors.green[800],
             padding: const EdgeInsets.symmetric(vertical: 16),
@@ -121,17 +121,19 @@ class DetalleRutinaScreen extends StatelessWidget {
                   height: 80,
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(8),
-                    image: ejercicio.imagenUrl.isNotEmpty
-                        ? DecorationImage(
-                            image: NetworkImage(ejercicio.imagenUrl),
-                            fit: BoxFit.cover,
-                          )
-                        : null,
+                    image:
+                        ejercicio.imagenUrl.isNotEmpty
+                            ? DecorationImage(
+                              image: NetworkImage(ejercicio.imagenUrl),
+                              fit: BoxFit.cover,
+                            )
+                            : null,
                     color: Colors.grey[200],
                   ),
-                  child: ejercicio.imagenUrl.isEmpty
-                      ? const Icon(Icons.fitness_center, size: 40)
-                      : null,
+                  child:
+                      ejercicio.imagenUrl.isEmpty
+                          ? const Icon(Icons.fitness_center, size: 40)
+                          : null,
                 ),
                 const SizedBox(width: 12),
                 Expanded(
@@ -171,5 +173,95 @@ class DetalleRutinaScreen extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  /// Método para iniciar rutina con endpoint PATCH
+  Future<void> _iniciarRutinaConEndpoint(
+    BuildContext context,
+    RutinaDetalle rutina,
+  ) async {
+    try {
+      // Mostrar loader
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (_) => const Center(child: CircularProgressIndicator()),
+      );
+
+      // Obtener el desafío actual
+      final desafioActual = await DesafioService.obtenerDesafioActual();
+
+      // Usar idDesafioRealiado en lugar de idDesafio
+      final idDesafioRealizado = desafioActual?['idDesafioRealiado'];
+
+      if (idDesafioRealizado == null) {
+        throw Exception('No hay desafío realizado disponible para el usuario');
+      }
+
+      final patchResponse = await DesafioService.iniciarRutinaDesafio(
+        idDesafioRealizado,
+      );
+
+      if (patchResponse != null) {
+        var idDesafioRealizado;
+        if (patchResponse.containsKey('idDesafioRealizado')) {
+          idDesafioRealizado = patchResponse['idDesafioRealizado'];
+        } else if (patchResponse.containsKey('id')) {
+          idDesafioRealizado = patchResponse['id'];
+        } else {}
+
+        if (idDesafioRealizado != null) {}
+      }
+
+      final rutinaIniciada = patchResponse != null;
+      if (rutinaIniciada) {
+        await Future.delayed(const Duration(seconds: 2));
+      }
+
+      // Cerrar loader
+      if (context.mounted) Navigator.pop(context);
+
+      if (rutinaIniciada) {
+        // Navegar a los ejercicios
+        if (context.mounted) {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder:
+                  (_) =>
+                      EjercicioActualScreen(rutina: rutina, ejercicioIndex: 0),
+            ),
+          );
+        }
+      } else {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text(
+                'No se pudo iniciar la rutina. Revisa tu conexión.',
+              ),
+              backgroundColor: Colors.red,
+              duration: Duration(seconds: 3),
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      print(' Error al iniciar rutina: $e');
+
+      // Cerrar loader si está abierto
+      if (context.mounted) Navigator.pop(context);
+
+      // Mostrar error
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error: $e'),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 4),
+          ),
+        );
+      }
+    }
   }
 }
