@@ -1,5 +1,5 @@
 class RutinaDetalle {
-  final String id;
+  final int id;
   final String nombre;
   final String descripcion;
   final String imagenUrl;
@@ -20,14 +20,14 @@ class RutinaDetalle {
   factory RutinaDetalle.fromJson(Map<String, dynamic> json) {
     try {
       return RutinaDetalle(
-        id: json['identifier']?.toString() ?? json['id']?.toString() ?? '0',
+        id: int.tryParse(json['identifier']?.toString() ?? json['id']?.toString() ?? '') ?? 0,
         nombre: json['name'] ?? json['nombre'] ?? 'Rutina sin nombre',
         descripcion: json['description'] ?? json['descripcion'] ?? '',
         imagenUrl: json['imageUrl'] ?? json['imagenUrl'] ?? '',
         nivel: json['level'] ?? json['nivel'] ?? 'Intermedio',
         completada: json['completed'] ?? json['completada'] ?? false,
         ejercicios: (json['practices'] ?? json['ejercicios'] ?? [])
-            .map((e) => EjercicioRutina.fromJson(e))
+            .map<EjercicioRutina>((e) => EjercicioRutina.fromJson(e))
             .toList(),
       );
     } catch (e) {
@@ -35,24 +35,29 @@ class RutinaDetalle {
     }
   }
 
-  RutinaDetalle copyWith({
-    List<EjercicioRutina>? ejercicios,
-    bool? completada,
-  }) {
-    return RutinaDetalle(
-      id: id,
-      nombre: nombre,
-      descripcion: descripcion,
-      imagenUrl: imagenUrl,
-      nivel: nivel,
-      ejercicios: ejercicios ?? this.ejercicios,
-      completada: completada ?? this.completada,
-    );
-  }
+ RutinaDetalle copyWith({
+  int? id,
+  String? nombre,
+  String? descripcion,
+  String? imagenUrl,
+  String? nivel,
+  bool? completada,
+  List<EjercicioRutina>? ejercicios,
+}) {
+  return RutinaDetalle(
+    id: id ?? this.id,
+    nombre: nombre ?? this.nombre,
+    descripcion: descripcion ?? this.descripcion,
+    imagenUrl: imagenUrl ?? this.imagenUrl,
+    nivel: nivel ?? this.nivel,
+    completada: completada ?? this.completada,
+    ejercicios: ejercicios ?? this.ejercicios,
+  );
+}
 }
 
 class EjercicioRutina {
-  final String id;
+  final int id;
   final String nombre;
   final int series;
   final int repeticiones;
@@ -79,16 +84,16 @@ class EjercicioRutina {
   factory EjercicioRutina.fromJson(Map<String, dynamic> json) {
     try {
       return EjercicioRutina(
-        id: json['id']?.toString() ?? '0',
+        id: int.tryParse(json['id']?.toString() ?? '') ?? 0,
         nombre: json['name'] ?? json['nombre'] ?? 'Ejercicio sin nombre',
         series: json['repetition'] ?? json['series'] ?? 3,
         repeticiones: json['target'] ?? json['repeticiones'] ?? 10,
-        pesoRecomendado: json['value']?.toDouble() ?? json['pesoRecomendado']?.toDouble(),
+        pesoRecomendado: (json['value'] ?? json['pesoRecomendado'])?.toDouble(),
         descripcion: json['description'] ?? json['descripcion'] ?? '',
         imagenUrl: json['imageUrl'] ?? json['imagenUrl'] ?? '',
         duracionEstimada: json['timeplacement'] ?? json['duracionEstimada'] ?? 60,
         completado: json['completed'] ?? json['completado'] ?? false,
-        tiempoRealizado: json['time']?.toInt() ?? json['tiempoRealizado']?.toInt(),
+        tiempoRealizado: json['time'] ?? json['tiempoRealizado'],
       );
     } catch (e) {
       throw Exception('Error al crear EjercicioRutina: ${e.toString()}');

@@ -5,7 +5,7 @@ import 'package:http/http.dart' as http;
 class RegistroService {
   static Future<String?> registrarAprendiz(Map<String, dynamic> datos, File? imagen) async {
     try {
-      var uri = Uri.parse('http://54.82.114.190:8080/auth/register'); // Cambia por tu URL real
+      var uri = Uri.parse('http://54.227.38.102:8080/auth/register'); // Cambia por tu URL real
       var request = http.MultipartRequest('POST', uri);
 
       // Adjuntamos campos del formulario

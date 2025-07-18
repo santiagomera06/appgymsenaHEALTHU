@@ -82,9 +82,13 @@ class _RutinasGeneralesState extends State<RutinasGenerales> {
     }
   }
 
+  int _generarIdDesdeTexto(String texto) {
+    return texto.hashCode & 0x7FFFFFFF;
+  }
+
   RutinaDetalle _crearRutinaDetalle(Map<String, dynamic> ejercicio, int index) {
     return RutinaDetalle(
-      id: '${ejercicio['titulo']}_$index',
+      id: _generarIdDesdeTexto('${ejercicio['titulo']}_$index'),
       nombre: ejercicio['titulo'] ?? 'Rutina sin nombre',
       descripcion: ejercicio['descripcion'] ?? 'Descripción no disponible',
       imagenUrl: ejercicio['imagen'] ?? '',
@@ -92,7 +96,7 @@ class _RutinasGeneralesState extends State<RutinasGenerales> {
       ejercicios: [
         for (var detalle in ejercicio['detalles'] as List<String>)
           EjercicioRutina(
-            id: '${detalle}_${ejercicio['titulo']}',
+            id: _generarIdDesdeTexto('${detalle}_${ejercicio['titulo']}'),
             nombre: detalle,
             series: 3,
             repeticiones: 12,

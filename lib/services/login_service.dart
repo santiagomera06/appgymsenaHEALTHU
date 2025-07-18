@@ -3,7 +3,7 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
 class LoginService {
-  final String _url = 'http://34.229.19.200:8080/auth/login';
+  final String _url = 'http://54.227.38.102:8080/auth/login';
 
   Future<String?> login(String email, String contrasena) async {
     try {
