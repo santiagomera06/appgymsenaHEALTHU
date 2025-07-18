@@ -4,6 +4,7 @@ import 'package:healthu/services/rutina_service.dart';
 import 'package:healthu/screens/validar_instructor_screen.dart';
 import 'package:healthu/widgets/temporizador.dart';
 import 'package:lottie/lottie.dart';
+import 'package:http/http.dart' as http;
 
 class EjercicioActualScreen extends StatefulWidget {
   final RutinaDetalle rutina;
@@ -24,29 +25,122 @@ class _EjercicioActualScreenState extends State<EjercicioActualScreen> {
   late bool _ejercicioCompletado;
   final _timerKey = GlobalKey<TemporizadorWidgetState>();
   bool _isUpdating = false;
+  bool _rutinaCompletada = false;
 
   @override
   void initState() {
     super.initState();
     _seriesCompletadas = 0;
     _ejercicioCompletado = false;
+    _verificarConexion();
   }
 
   EjercicioRutina get _ejercicio => widget.rutina.ejercicios[widget.ejercicioIndex];
 
-  Future<void> _marcarRutinaCompletada() async {
+  Future<void> _verificarConexion() async {
+    try {
+      final response = await http.get(Uri.parse('https://www.google.com'));
+      if (response.statusCode != 200) {
+        _mostrarErrorSnackbar('Sin conexión a Internet');
+      }
+    } catch (e) {
+      _mostrarErrorSnackbar('Error de conexión');
+    }
+  }
+
+  void _mostrarErrorSnackbar(String mensaje) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(mensaje),
+        backgroundColor: Colors.red,
+      ),
+    );
+  }
+
+  Future<void> _siguienteEjercicio() async {
+    if (_isUpdating) return;
     setState(() => _isUpdating = true);
+
+    try {
+      final serieRegistrada = await RutinaService.registrarSerieCompletada(
+        idEjercicio: _ejercicio.id,
+        idRutina: widget.rutina.id,
+      );
+
+      if (!serieRegistrada) {
+        _mostrarErrorSnackbar('No se pudo registrar la serie completada');
+        return;
+      }
+
+      setState(() {
+        _seriesCompletadas++;
+        _ejercicioCompletado = _seriesCompletadas >= _ejercicio.series;
+      });
+
+      if (!_ejercicioCompletado) {
+        _timerKey.currentState?.reset();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Serie $_seriesCompletadas/${_ejercicio.series} completada'),
+            duration: const Duration(seconds: 2),
+          ),
+        );
+        return;
+      }
+
+      final progresoRegistrado = await RutinaService.registrarProgresoEjercicio(
+        idRutina: widget.rutina.id,
+        idEjercicio: _ejercicio.id,
+      );
+
+      if (!progresoRegistrado) {
+        _mostrarErrorSnackbar('No se pudo registrar el progreso del ejercicio');
+        return;
+      }
+
+      final ejercicioActualizado = _ejercicio.copyWith(
+        completado: true,
+        tiempoRealizado: _timerKey.currentState?.tiempoTranscurrido,
+      );
+
+      final rutinaActualizada = widget.rutina.copyWith(
+        ejercicios: List<EjercicioRutina>.from(widget.rutina.ejercicios)
+          ..[widget.ejercicioIndex] = ejercicioActualizado,
+      );
+
+      if (widget.ejercicioIndex < widget.rutina.ejercicios.length - 1) {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (_) => EjercicioActualScreen(
+              rutina: rutinaActualizada,
+              ejercicioIndex: widget.ejercicioIndex + 1,
+            ),
+          ),
+        );
+      } else {
+        await _marcarRutinaCompletada();
+        await _mostrarDialogoCompletado(rutinaActualizada);
+      }
+    } catch (e) {
+      _mostrarErrorSnackbar('Error: $e');
+    } finally {
+      if (mounted) setState(() => _isUpdating = false);
+    }
+  }
+
+  Future<void> _marcarRutinaCompletada() async {
     try {
       final ejercicioActualizado = _ejercicio.copyWith(
         completado: true,
         tiempoRealizado: _timerKey.currentState?.tiempoTranscurrido,
       );
 
-      final ejerciciosActualizados = List<EjercicioRutina>.from(widget.rutina.ejercicios);
-      ejerciciosActualizados[widget.ejercicioIndex] = ejercicioActualizado;
+      final ejerciciosActualizados = List<EjercicioRutina>.from(widget.rutina.ejercicios)
+        ..[widget.ejercicioIndex] = ejercicioActualizado;
 
       await RutinaService.actualizarRutina(
-        widget.rutina.id,
+        widget.rutina.id.toString(),
         {
           "completada": true,
           "ejercicios": ejerciciosActualizados.map((e) => {
@@ -56,131 +150,75 @@ class _EjercicioActualScreenState extends State<EjercicioActualScreen> {
               }).toList(),
         },
       );
+
+      if (mounted) setState(() => _rutinaCompletada = true);
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error al actualizar: $e'),
-          backgroundColor: Colors.red,
-        ),
-      );
-      rethrow;
-    } finally {
-      if (mounted) setState(() => _isUpdating = false);
-    }
-  }
-
-  Future<void> _siguienteEjercicio() async {
-    final ejercicioActualizado = _ejercicio.copyWith(
-      completado: true,
-      tiempoRealizado: _timerKey.currentState?.tiempoTranscurrido,
-    );
-
-    final rutinaActualizada = widget.rutina.copyWith(
-      ejercicios: List<EjercicioRutina>.from(widget.rutina.ejercicios)
-        ..[widget.ejercicioIndex] = ejercicioActualizado,
-    );
-
-    if (widget.ejercicioIndex < widget.rutina.ejercicios.length - 1) {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(
-          builder: (_) => EjercicioActualScreen(
-            rutina: rutinaActualizada,
-            ejercicioIndex: widget.ejercicioIndex + 1,
-          ),
-        ),
-      );
-    } else {
-      await _mostrarDialogoCompletado(rutinaActualizada);
+      _mostrarErrorSnackbar('Error al finalizar rutina');
     }
   }
 
   Future<void> _mostrarDialogoCompletado(RutinaDetalle rutina) async {
-    try {
-      await _marcarRutinaCompletada();
-
-      await showDialog(
-        context: context,
-        barrierDismissible: false,
-        builder: (_) => AlertDialog(
-          title: const Row(
-            children: [
-              Icon(Icons.emoji_events, color: Colors.orange),
-              SizedBox(width: 8),
-              Text('¡Rutina completada!'),
-            ],
-          ),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Text('Has finalizado todos los ejercicios de la rutina.'),
-              const SizedBox(height: 16),
-              Lottie.asset(
-                'assets/animations/success.json',
-                width: 150,
-                height: 150,
-                repeat: false,
-              ),
-              const SizedBox(height: 16),
-              ElevatedButton.icon(
-                onPressed: () {
-                  Navigator.of(context).pop();
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => ValidarInstructorScreen(
-                        rutinaId: widget.rutina.id,
-                      ),
-                    ),
-                  );
-                },
-                icon: const Icon(Icons.qr_code),
-                label: const Text('Validar con instructor'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.green[800],
-                  foregroundColor: Colors.white,
-                ),
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
+    await showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => AlertDialog(
+        title: const Row(
+          children: [
+            Icon(Icons.emoji_events, color: Colors.orange),
+            SizedBox(width: 8),
+            Text('¡Rutina completada!'),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text('Has finalizado todos los ejercicios de la rutina.'),
+            const SizedBox(height: 16),
+            Lottie.asset('assets/animations/success.json', width: 150, height: 150, repeat: false),
+            const SizedBox(height: 16),
+            ElevatedButton.icon(
               onPressed: () {
                 Navigator.of(context).pop();
-                Navigator.popUntil(context, (route) => route.isFirst);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => ValidarInstructorScreen(rutinaId: rutina.id.toString()),
+                  ),
+                );
               },
-              child: const Text('Cerrar'),
+              icon: const Icon(Icons.qr_code),
+              label: const Text('Validar con instructor'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.green[800],
+                foregroundColor: Colors.white,
+              ),
             ),
           ],
         ),
-      );
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error al guardar progreso: $e'),
-          backgroundColor: Colors.red,
-        ),
-      );
-    }
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.of(context).pop();
+              Navigator.popUntil(context, (route) => route.isFirst);
+            },
+            child: const Text('Cerrar'),
+          ),
+        ],
+      ),
+    );
   }
 
-  void _onTimerComplete() {
-    setState(() {
-      _seriesCompletadas++;
-      _ejercicioCompletado = _seriesCompletadas >= _ejercicio.series;
-
-      if (_ejercicioCompletado) {
-        _siguienteEjercicio();
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Serie $_seriesCompletadas/${_ejercicio.series} completada!'),
-            duration: const Duration(seconds: 2),
-          ),
-        );
-        _timerKey.currentState?.reset();
-      }
-    });
+  Widget _buildInfoRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(label, style: const TextStyle(fontSize: 16, color: Colors.grey)),
+          Text(value, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+        ],
+      ),
+    );
   }
 
   @override
@@ -213,10 +251,7 @@ class _EjercicioActualScreenState extends State<EjercicioActualScreen> {
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(12),
                 image: _ejercicio.imagenUrl.isNotEmpty
-                    ? DecorationImage(
-                        image: NetworkImage(_ejercicio.imagenUrl),
-                        fit: BoxFit.cover,
-                      )
+                    ? DecorationImage(image: NetworkImage(_ejercicio.imagenUrl), fit: BoxFit.cover)
                     : null,
                 color: Colors.grey[200],
               ),
@@ -225,26 +260,16 @@ class _EjercicioActualScreenState extends State<EjercicioActualScreen> {
                   : null,
             ),
             const SizedBox(height: 24),
-            Text(
-              _ejercicio.nombre,
-              style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-            ),
+            Text(_ejercicio.nombre, style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
             const SizedBox(height: 16),
-            Column(
-              children: [
-                LinearProgressIndicator(
-                  value: _seriesCompletadas / _ejercicio.series,
-                  minHeight: 10,
-                  backgroundColor: Colors.grey[300],
-                  color: Colors.green,
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  'Progreso: $_seriesCompletadas/${_ejercicio.series} series',
-                  style: const TextStyle(fontSize: 16),
-                ),
-              ],
+            LinearProgressIndicator(
+              value: _seriesCompletadas / _ejercicio.series,
+              minHeight: 10,
+              backgroundColor: Colors.grey[300],
+              color: Colors.green,
             ),
+            const SizedBox(height: 8),
+            Text('Progreso: $_seriesCompletadas/${_ejercicio.series} series', style: const TextStyle(fontSize: 16)),
             const SizedBox(height: 16),
             Card(
               child: Padding(
@@ -275,9 +300,9 @@ class _EjercicioActualScreenState extends State<EjercicioActualScreen> {
             ],
             TemporizadorWidget(
               key: _timerKey,
-              segundos: 5, // Cambiado de _ejercicio.duracionEstimada a 5 segundos
-              onComplete: _onTimerComplete,
-              ),
+              segundos: 3,
+              onComplete: () {},
+            ),
           ],
         ),
       ),
@@ -291,15 +316,11 @@ class _EjercicioActualScreenState extends State<EjercicioActualScreen> {
                     ? _timerKey.currentState?.pause
                     : _timerKey.currentState?.start,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: _timerKey.currentState?.isRunning == true
-                      ? Colors.orange
-                      : Colors.blue,
+                  backgroundColor: _timerKey.currentState?.isRunning == true ? Colors.orange : Colors.blue,
                   padding: const EdgeInsets.symmetric(vertical: 16),
                 ),
                 child: Text(
-                  _timerKey.currentState?.isRunning == true
-                      ? 'Pausar'
-                      : 'Iniciar Temporizador',
+                  _timerKey.currentState?.isRunning == true ? 'Pausar' : 'Iniciar Temporizador',
                   style: const TextStyle(color: Colors.white),
                 ),
               ),
@@ -307,12 +328,7 @@ class _EjercicioActualScreenState extends State<EjercicioActualScreen> {
             const SizedBox(width: 12),
             Expanded(
               child: ElevatedButton(
-                onPressed: _ejercicioCompletado && !_isUpdating
-                    ? () {
-                        setState(() => _ejercicioCompletado = false);
-                        _onTimerComplete();
-                      }
-                    : null,
+                onPressed: _isUpdating ? null : _siguienteEjercicio,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.green[800],
                   padding: const EdgeInsets.symmetric(vertical: 16),
@@ -321,29 +337,13 @@ class _EjercicioActualScreenState extends State<EjercicioActualScreen> {
                     ? const SizedBox(
                         width: 20,
                         height: 20,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: Colors.white,
-                        ),
+                        child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
                       )
                     : const Text('Siguiente', style: TextStyle(color: Colors.white)),
               ),
             ),
           ],
         ),
-      ),
-    );
-  }
-
-  Widget _buildInfoRow(String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(label, style: const TextStyle(fontSize: 16, color: Colors.grey)),
-          Text(value, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-        ],
       ),
     );
   }

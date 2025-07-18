@@ -4,7 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../config/api_config.dart';
 
 class LoginService {
-  final String _url = ApiConfig.getUrl('/auth/login');
+  final String _url = 'http://34.229.19.200:8080/auth/login';
 
   Future<String?> login(String email, String contrasena) async {
     try {
