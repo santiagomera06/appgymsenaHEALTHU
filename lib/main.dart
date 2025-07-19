@@ -10,6 +10,7 @@ import 'package:healthu/screens/crear%20rutina/crear_rutina_screen.dart';
 import 'package:healthu/screens/estadisticas/progreso_estadisticas_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
+import 'package:healthu/screens/dashboard/medicion_frecuencia_screen.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -39,6 +40,7 @@ class HealthuApp extends StatelessWidget {
       initialRoute: '/',
       routes: {
         '/': (context) => const Login(),
+        '/medicion-frecuencia': (ctx) => const MedicionFrecuenciaScreen(),
         '/login': (context) => const Login(),
         '/registro': (context) => const RegisterAprendiz(),
         '/home':
