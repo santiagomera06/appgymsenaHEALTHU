@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:healthu/screens/rutinas/detalle_rutina.dart';
-import 'package:healthu/widgets/boton_en_imagen.dart';
 import 'package:healthu/widgets/barra_navegacion.dart';
+import 'package:healthu/widgets/boton_en_imagen.dart';
+import 'package:healthu/services/rutinas_generales_service.dart';
 import 'package:healthu/models/rutina_model.dart';
 
 class RutinasGenerales extends StatefulWidget {
@@ -13,42 +14,30 @@ class RutinasGenerales extends StatefulWidget {
 
 class _RutinasGeneralesState extends State<RutinasGenerales> {
   String nivelSeleccionado = 'Todos';
+  List<Rutina> _rutinas = [];
+  bool _cargando = true;
 
-  final List<Map<String, dynamic>> _ejerciciosBase = [
-    {
-      'titulo': 'Full Body Básico',
-      'nivel': 'Principiante',
-      'etiqueta': 'FULLBODY',
-      'descripcion': 'Rutina básica para activar todo el cuerpo con ejercicios fundamentales.',
-      'imagen': 'assets/images/full.png',
-      'detalles': ['Sentadillas', 'Flexiones pared', 'Jumping jacks'],
-      'duracion': '10 min',
-      'enfoque': 'Full Body',
-      'dificultad': 'Baja',
-    },
-    {
-      'titulo': 'Full Body Intermedio',
-      'nivel': 'Intermedio',
-      'etiqueta': 'FULLBODY',
-      'descripcion': 'Rutina intermedia para mejorar resistencia y fuerza general.',
-      'imagen': 'assets/images/full.png',
-      'detalles': ['Burpees', 'Plancha', 'Flexiones'],
-      'duracion': '15 min',
-      'enfoque': 'Full Body',
-      'dificultad': 'Media',
-    },
-    {
-      'titulo': 'Pecho Avanzado',
-      'nivel': 'Avanzado',
-      'etiqueta': 'PECHO',
-      'descripcion': 'Rutina avanzada para desarrollo muscular del pecho.',
-      'imagen': 'assets/images/pecho.png',
-      'detalles': ['Press banca', 'Fondos', 'Flexiones'],
-      'duracion': '20 min',
-      'enfoque': 'Tren Superior',
-      'dificultad': 'Alta',
-    },
-  ];
+  @override
+  void initState() {
+    super.initState();
+    _cargarRutinas();
+  }
+
+  void _cargarRutinas() async {
+    try {
+      final servicio = RutinasGeneralesService();
+      final rutinas = await servicio.obtenerRutinas();
+      setState(() {
+        _rutinas = rutinas;
+        _cargando = false;
+      });
+    } catch (e) {
+      print('Error cargando rutinas: $e');
+      setState(() {
+        _cargando = false;
+      });
+    }
+  }
 
   void _mostrarMenuNivel() async {
     final seleccion = await showMenu<String>(
@@ -82,70 +71,34 @@ class _RutinasGeneralesState extends State<RutinasGenerales> {
     }
   }
 
-  int _generarIdDesdeTexto(String texto) {
-    return texto.hashCode & 0x7FFFFFFF;
-  }
-
-  RutinaDetalle _crearRutinaDetalle(Map<String, dynamic> ejercicio, int index) {
+  RutinaDetalle _convertirARutinaDetalle(Rutina rutina) {
     return RutinaDetalle(
-      id: _generarIdDesdeTexto('${ejercicio['titulo']}_$index'),
-      nombre: ejercicio['titulo'] ?? 'Rutina sin nombre',
-      descripcion: ejercicio['descripcion'] ?? 'Descripción no disponible',
-      imagenUrl: ejercicio['imagen'] ?? '',
-      nivel: ejercicio['nivel'] ?? 'General',
-      ejercicios: [
-        for (var detalle in ejercicio['detalles'] as List<String>)
-          EjercicioRutina(
-            id: _generarIdDesdeTexto('${detalle}_${ejercicio['titulo']}'),
-            nombre: detalle,
-            series: 3,
-            repeticiones: 12,
-            pesoRecomendado: _obtenerPesoRecomendado(detalle, ejercicio['nivel']),
-            descripcion: _obtenerDescripcionEjercicio(detalle),
-            imagenUrl: _obtenerImagenEjercicio(detalle),
-            duracionEstimada: 60,
-          ),
-      ],
+      id: rutina.idRutina,
+      nombre: rutina.nombre,
+      descripcion: rutina.descripcion,
+      imagenUrl: rutina.imagen ?? '',
+      nivel: rutina.tipo, // Suponiendo que "tipo" es nivel
+      completada: false,
+      ejercicios: rutina.ejercicios.map((e) {
+        return EjercicioRutina(
+          id: e.idEjercicio,
+          nombre: e.nombre,
+          descripcion: e.descripcion,
+          imagenUrl: e.imagen ?? '',
+          series: e.series ?? 3,
+          repeticiones: e.repeticiones ?? 10,
+          duracionEstimada: 60,
+          pesoRecomendado: null,
+        );
+      }).toList(),
     );
-  }
-
-  double _obtenerPesoRecomendado(String ejercicio, String nivel) {
-    if (nivel == 'Principiante') return 5.0;
-    if (nivel == 'Intermedio') return 10.0;
-    return 20.0;
-  }
-
-  String _obtenerDescripcionEjercicio(String ejercicio) {
-    switch (ejercicio.toLowerCase()) {
-      case 'sentadillas':
-        return 'Flexiona las rodillas bajando el cuerpo manteniendo la espalda recta';
-      case 'flexiones':
-        return 'Baja el cuerpo doblando los codos y luego empuja hacia arriba';
-      case 'burpees':
-        return 'Combinación de sentadilla, flexión y salto vertical';
-      default:
-        return 'Ejercicio para mejorar fuerza y resistencia';
-    }
-  }
-
-  String _obtenerImagenEjercicio(String ejercicio) {
-    switch (ejercicio.toLowerCase()) {
-      case 'sentadillas':
-        return 'https://example.com/sentadillas.jpg';
-      case 'flexiones':
-        return 'https://example.com/flexiones.jpg';
-      case 'burpees':
-        return 'https://example.com/burpees.jpg';
-      default:
-        return '';
-    }
   }
 
   @override
   Widget build(BuildContext context) {
-    final ejerciciosFiltrados = nivelSeleccionado == 'Todos'
-        ? _ejerciciosBase
-        : _ejerciciosBase.where((e) => e['nivel'] == nivelSeleccionado).toList();
+    final rutinasFiltradas = nivelSeleccionado == 'Todos'
+        ? _rutinas
+        : _rutinas.where((r) => r.tipo == nivelSeleccionado).toList();
 
     return Scaffold(
       appBar: AppBar(
@@ -159,124 +112,105 @@ class _RutinasGeneralesState extends State<RutinasGenerales> {
           ),
         ],
       ),
-      body: ListView.builder(
-        itemCount: ejerciciosFiltrados.length,
-        itemBuilder: (context, index) {
-          final ejercicio = ejerciciosFiltrados[index];
-          final rutinaDetalle = _crearRutinaDetalle(ejercicio, index);
+      body: _cargando
+          ? const Center(child: CircularProgressIndicator())
+          : ListView.builder(
+              itemCount: rutinasFiltradas.length,
+              itemBuilder: (context, index) {
+                final rutina = rutinasFiltradas[index];
+                final rutinaDetalle = _convertirARutinaDetalle(rutina);
 
-          return Card(
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
-            margin: const EdgeInsets.all(12),
-            child: InkWell(
-              borderRadius: BorderRadius.circular(12),
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => DetalleRutinaScreen(rutina: rutinaDetalle),
+                return Card(
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  margin: const EdgeInsets.all(12),
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(12),
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => DetalleRutinaScreen(rutina: rutinaDetalle),
+                        ),
+                      );
+                    },
+                    child: Padding(
+                      padding: const EdgeInsets.all(12),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                rutina.nombre,
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 18,
+                                ),
+                              ),
+                              Chip(
+                                backgroundColor: _obtenerColorNivel(rutina.tipo),
+                                label: Text(
+                                  rutina.tipo,
+                                  style: const TextStyle(color: Colors.white),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 8),
+                          Text(rutina.descripcion),
+                          const SizedBox(height: 10),
+                          rutina.imagen != null && rutina.imagen!.isNotEmpty
+                              ? ClipRRect(
+                                  borderRadius: BorderRadius.circular(10),
+                                  child: Image.network(
+                                    rutina.imagen!,
+                                    height: 160,
+                                    width: double.infinity,
+                                    fit: BoxFit.cover,
+                                    errorBuilder: (_, __, ___) => Container(
+                                      height: 160,
+                                      color: Colors.grey[200],
+                                      child: const Icon(Icons.fitness_center, size: 50),
+                                    ),
+                                  ),
+                                )
+                              : Container(
+                                  height: 160,
+                                  decoration: BoxDecoration(
+                                    color: Colors.grey[300],
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
+                                  child: const Icon(Icons.fitness_center, size: 50),
+                                ),
+                          const SizedBox(height: 8),
+                          ElevatedButton.icon(
+                            onPressed: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => DetalleRutinaScreen(rutina: rutinaDetalle),
+                                ),
+                              );
+                            },
+                            icon: const Icon(Icons.info_outline),
+                            label: const Text('Ver detalles'),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.green[800],
+                              foregroundColor: Colors.white,
+                              shape: const StadiumBorder(),
+                              minimumSize: const Size(double.infinity, 48),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                   ),
                 );
               },
-              child: Padding(
-                padding: const EdgeInsets.all(12),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          ejercicio['titulo'] ?? 'Sin título',
-                          style: const TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 18,
-                          ),
-                        ),
-                        Chip(
-                          backgroundColor: _obtenerColorNivel(ejercicio['nivel'] as String?),
-                          label: Text(
-                            ejercicio['nivel'] ?? 'Sin nivel',
-                            style: const TextStyle(color: Colors.white),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-                    Row(
-                      children: [
-                        const Icon(Icons.timer, size: 16),
-                        const SizedBox(width: 4),
-                        Text(ejercicio['duracion'] ?? 'Duración no especificada'),
-                        const SizedBox(width: 16),
-                        const Icon(Icons.fitness_center, size: 16),
-                        const SizedBox(width: 4),
-                        Text(ejercicio['enfoque'] ?? 'Enfoque no especificado'),
-                      ],
-                    ),
-                    const SizedBox(height: 10),
-                    Stack(
-                      children: [
-                        ClipRRect(
-                          borderRadius: BorderRadius.circular(10),
-                          child: Image.asset(
-                            ejercicio['imagen'] ?? 'assets/images/default.png',
-                            height: 160,
-                            width: double.infinity,
-                            fit: BoxFit.cover,
-                            errorBuilder: (_, __, ___) => Container(
-                              height: 160,
-                              color: Colors.grey[200],
-                              child: const Icon(Icons.fitness_center, size: 50),
-                            ),
-                          ),
-                        ),
-                        BotonEnImagen(texto: ejercicio['etiqueta'] ?? ''),
-                      ],
-                    ),
-                    const SizedBox(height: 10),
-                    Text(ejercicio['descripcion'] ?? 'Sin descripción'),
-                    const SizedBox(height: 10),
-                    ExpansionTile(
-                      title: const Text(
-                        'Ver ejercicios',
-                        style: TextStyle(fontSize: 16),
-                      ),
-                      children: ((ejercicio['detalles'] as List<String>?) ?? [])
-                          .map((item) => ListTile(
-                                leading: const Icon(Icons.fitness_center, color: Colors.green),
-                                title: Text(item),
-                              ))
-                          .toList(),
-                    ),
-                    const SizedBox(height: 8),
-                    ElevatedButton.icon(
-                      onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => DetalleRutinaScreen(rutina: rutinaDetalle),
-                          ),
-                        );
-                      },
-                      icon: const Icon(Icons.info_outline),
-                      label: const Text('Ver detalles'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.green[800],
-                        foregroundColor: Colors.white,
-                        shape: const StadiumBorder(),
-                        minimumSize: const Size(double.infinity, 48),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
             ),
-          );
-        },
-      ),
       bottomNavigationBar: const BarraNavegacion(indiceActual: 0),
     );
   }

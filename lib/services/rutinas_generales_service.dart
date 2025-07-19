@@ -63,7 +63,7 @@ class Rutina {
 }
 
 class RutinasGeneralesService {
-  static const String baseUrl = 'https://gym-ver2-api-aafaf6c56cad.herokuapp.com';
+   static const String baseUrl = 'http://54.227.38.102:8080';
   static const String rutinasEndpoint = '/rutina/obtenerRutinas';
 
   Future<List<Rutina>> obtenerRutinas() async {
