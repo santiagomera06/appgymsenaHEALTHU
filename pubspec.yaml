@@ -1,0 +1,53 @@
+name: healthu
+description: "A new Flutter project."
+publish_to: "none"
+
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.7.2
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_localizations:
+    sdk: flutter
+  cupertino_icons: ^1.0.8
+  mobile_scanner: ^3.0.0 # Para el escaneo de QR
+  dio: ^5.4.0
+  
+  
+ 
+
+  # ——— Fuentes ———
+  google_fonts: ^5.0.0
+
+  # ——— Internacionalización ———
+  intl: ^0.19.0
+
+  # ——— Gráficas (versión moderna con parámetros nombrados) ———
+  fl_chart: ^0.65.0
+
+  # ——— Otros ———
+  shared_preferences: ^2.2.2
+  image_picker: ^1.0.4
+  http: ^1.1.0
+  http_parser: ^4.0.0 
+  cached_network_image: ^3.3.0  # ← Nueva dependencia para manejo de imágenes
+  lottie: ^3.3.1
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^5.0.0
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/images/full.png
+    - assets/images/pecho.png
+    - assets/images/musculos.png
+    - assets/images/badge.png
+    - assets/animations/
+    
+
