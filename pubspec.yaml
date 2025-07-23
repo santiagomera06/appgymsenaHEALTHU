@@ -15,12 +15,13 @@ dependencies:
   cupertino_icons: ^1.0.8
   mobile_scanner: ^3.0.0 # Para el escaneo de QR
   dio: ^5.4.0
-  
-  
- 
-
   # ——— Fuentes ———
   google_fonts: ^5.0.0
+
+#permisos camara
+  camera: ^0.10.0+4
+  permission_handler: ^12.0.1 
+
 
   # ——— Internacionalización ———
   intl: ^0.19.0
@@ -28,7 +29,7 @@ dependencies:
   # ——— Gráficas (versión moderna con parámetros nombrados) ———
   fl_chart: ^0.65.0
 
-  # ——— Otros ———
+
   shared_preferences: ^2.2.2
   image_picker: ^1.0.4
   http: ^1.1.0

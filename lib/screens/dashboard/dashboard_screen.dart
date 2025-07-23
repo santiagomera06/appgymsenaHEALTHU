@@ -41,6 +41,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
         title: const Text('Perfil'),
         onTap: () => Navigator.pop(context),
       ),
+       ListTile(
+  leading: const Icon(Icons.monitor_heart, color: Colors.red),
+  title: const Text('Mide tu frecuencia'),
+  onTap: () {
+    Navigator.pop(context);
+    Navigator.pushNamed(context, '/medicion-frecuencia');
+  },
+),
+
       ListTile(
         leading: const Icon(Icons.refresh),
         title: const Text('Actualizar datos'),
@@ -70,6 +79,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
       ),
     ];
   }
+
+
 
   String _obtenerSaludo() {
     final hora = DateTime.now().hour;
