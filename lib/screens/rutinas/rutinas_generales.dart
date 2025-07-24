@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:healthu/screens/rutinas/detalle_rutina.dart';
-import 'package:healthu/widgets/barra_navegacion.dart';
-import 'package:healthu/widgets/boton_en_imagen.dart';
+import 'package:healthu/screens/desafios/desafios_screen.dart';
+import 'package:healthu/screens/Dashboard/dashboard_screen.dart';
+import 'package:healthu/models/usuario.dart';
+
 import 'package:healthu/services/rutinas_generales_service.dart';
 import 'package:healthu/models/rutina_model.dart';
+import 'package:healthu/widgets/bottom_nav_bar.dart';
 
 class RutinasGenerales extends StatefulWidget {
   const RutinasGenerales({super.key});
@@ -16,6 +19,48 @@ class _RutinasGeneralesState extends State<RutinasGenerales> {
   String nivelSeleccionado = 'Todos';
   List<Rutina> _rutinas = [];
   bool _cargando = true;
+
+  int _selectedIndex = 1;
+  
+  get usuario => null; // ✅ Estás en la pestaña de Rutinas
+
+  void _onTap(int index) {
+    if (_selectedIndex == index) return;
+
+    setState(() {
+      _selectedIndex = index;
+    });
+
+    switch (index) {
+      case 0: // Desafíos
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const DesafiosScreen()),
+        );
+        break;
+      case 1: // Rutinas
+        // Ya estás aquí, no necesitas hacer nada
+        break;
+         case 2:
+      // Solo necesitas esto para ir al DashboardScreen
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (_) => DashboardScreen(
+            usuario: Usuario(
+              id: '0',
+              nombre: 'Invitado',
+              email: 'invitado@correo.com',
+              fotoUrl: 'https://via.placeholder.com/150',
+              nivelActual: 'Principiante', // Ajusta el valor según corresponda
+            ),
+          ),
+        ),
+      );
+      break;
+    
+    }
+  }
 
   @override
   void initState() {
@@ -77,7 +122,7 @@ class _RutinasGeneralesState extends State<RutinasGenerales> {
       nombre: rutina.nombre,
       descripcion: rutina.descripcion,
       imagenUrl: rutina.imagen ?? '',
-      nivel: rutina.tipo, // Suponiendo que "tipo" es nivel
+      nivel: rutina.tipo,
       completada: false,
       ejercicios: rutina.ejercicios.map((e) {
         return EjercicioRutina(
@@ -191,7 +236,8 @@ class _RutinasGeneralesState extends State<RutinasGenerales> {
                               Navigator.push(
                                 context,
                                 MaterialPageRoute(
-                                  builder: (context) => DetalleRutinaScreen(rutina: rutinaDetalle),
+                                  builder: (context) =>
+                                      DetalleRutinaScreen(rutina: rutinaDetalle),
                                 ),
                               );
                             },
@@ -211,7 +257,10 @@ class _RutinasGeneralesState extends State<RutinasGenerales> {
                 );
               },
             ),
-      bottomNavigationBar: const BarraNavegacion(indiceActual: 0),
+      bottomNavigationBar: HealthuBottomNavBar(
+        currentIndex: _selectedIndex,
+        onTap: _onTap,
+      ),
     );
   }
 }
