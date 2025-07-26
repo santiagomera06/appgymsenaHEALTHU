@@ -1,84 +1,78 @@
 import 'package:flutter/material.dart';
+import 'package:healthu/screens/dashboard/pantalla_procesamiento.dart';
 
-/// Modelo de datos para cada tarjeta
 class CardDataModel {
   final String title;
   final String value;
   final IconData icon;
 
-  const CardDataModel({
+  CardDataModel({
     required this.title,
     required this.value,
     required this.icon,
   });
 }
 
-/// Widget que muestra un conjunto de tarjetas de estadísticas
-/// Recibe una lista de [CardDataModel] para renderizar dinámicamente
 class TarjetasDashboard extends StatelessWidget {
   final List<CardDataModel> items;
 
-  const TarjetasDashboard({
-    super.key,
-    required this.items,
-  });
+  const TarjetasDashboard({super.key, required this.items});
 
   @override
   Widget build(BuildContext context) {
     return Wrap(
-      spacing: 16,
-      runSpacing: 16,
+      spacing: 12,
+      runSpacing: 12,
       children: items.map((item) {
-        return CardItem(
-          title: item.title,
-          value: item.value,
-          icon: item.icon,
+        return GestureDetector(
+          onTap: () {
+            if (item.title == 'Altura') {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const PantallaProcesamiento(),
+                ),
+              );
+            }
+          },
+          child: Container(
+            width: MediaQuery.of(context).size.width / 2 - 24,
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.grey.withOpacity(0.2),
+                  blurRadius: 8,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: Column(
+              children: [
+                Icon(item.icon, size: 36, color: Colors.green),
+                const SizedBox(height: 12),
+                Text(
+                  item.title,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 16,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  item.value,
+                  style: const TextStyle(
+                    fontSize: 14,
+                    color: Colors.grey,
+                  ),
+                ),
+              ],
+            ),
+          ),
         );
       }).toList(),
-    );
-  }
-}
-
-/// Widget que representa una tarjeta individual con icono, valor y título
-class CardItem extends StatelessWidget {
-  final String title;
-  final String value;
-  final IconData icon;
-
-  const CardItem({
-    super.key,
-    required this.title,
-    required this.value,
-    required this.icon,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      width: 160,
-      height: 100,
-      child: Card(
-        elevation: 4,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        child: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(icon, size: 28, color: Colors.green),
-              const SizedBox(height: 6),
-              Text(
-                value,
-                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 2),
-              Text(
-                title,
-                style: const TextStyle(fontSize: 12, color: Colors.grey),
-              ),
-            ],
-          ),
-        ),
-      ),
     );
   }
 }

@@ -8,9 +8,10 @@ import 'package:healthu/screens/home%20inicio/home_screen.dart';
 import 'package:healthu/screens/register/register_aprendiz.dart';
 import 'package:healthu/screens/crear%20rutina/crear_rutina_screen.dart';
 import 'package:healthu/screens/estadisticas/progreso_estadisticas_screen.dart';
+import 'package:healthu/screens/dashboard/medicion_frecuencia_screen.dart';
+import 'package:healthu/screens/dashboard/medicion_altura_screen.dart'; // ✅ Import agregado
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
-import 'package:healthu/screens/dashboard/medicion_frecuencia_screen.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -29,22 +30,20 @@ class HealthuApp extends StatelessWidget {
       theme: AppTheme.lightTheme,
       darkTheme: AppTheme.darkTheme,
       themeMode: ThemeMode.light,
-
       localizationsDelegates: const [
         GlobalMaterialLocalizations.delegate,
         GlobalWidgetsLocalizations.delegate,
         GlobalCupertinoLocalizations.delegate,
       ],
       supportedLocales: const [Locale('es', ''), Locale('en', '')],
-
       initialRoute: '/',
       routes: {
         '/': (context) => const Login(),
-        '/medicion-frecuencia': (ctx) => const MedicionFrecuenciaScreen(),
         '/login': (context) => const Login(),
         '/registro': (context) => const RegisterAprendiz(),
-        '/home':
-            (context) => FutureBuilder<Usuario>(
+        '/medicion-frecuencia': (context) => const MedicionFrecuenciaScreen(),
+        '/medicion-altura': (context) => const MedicionAlturaScreen(), // ✅ Ruta nueva
+        '/home': (context) => FutureBuilder<Usuario>(
               future: _obtenerUsuarioDesdeToken(),
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
@@ -54,22 +53,21 @@ class HealthuApp extends StatelessWidget {
                 } else if (snapshot.hasError || !snapshot.hasData) {
                   return const Login();
                 } else {
-                  return HomeScreen(usuario: snapshot.data!, indiceInicial: 2);
+                  return HomeScreen(
+                      usuario: snapshot.data!, indiceInicial: 2);
                 }
               },
             ),
         '/crear-rutina': (context) => const CrearRutinaScreen(),
-        '/progreso-estadisticas':
-            (context) => const ProgresoEstadisticasScreen(),
+        '/progreso-estadisticas': (context) => const ProgresoEstadisticasScreen(),
       },
       onGenerateRoute: (settings) {
         return MaterialPageRoute(
-          builder:
-              (_) => Scaffold(
-                body: Center(
-                  child: Text('Ruta no encontrada: ${settings.name}'),
-                ),
-              ),
+          builder: (_) => Scaffold(
+            body: Center(
+              child: Text('Ruta no encontrada: ${settings.name}'),
+            ),
+          ),
         );
       },
     );
@@ -96,3 +94,4 @@ class HealthuApp extends StatelessWidget {
     );
   }
 }
+

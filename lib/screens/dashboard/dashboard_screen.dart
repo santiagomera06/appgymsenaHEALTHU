@@ -11,6 +11,8 @@ import '../graficas/graficas_dashboard.dart';
 import '../graficas/grafica_anillo.dart';
 import '../editar usuario/editar_usuario_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'pantalla_instrucciones.dart';
+import 'pantalla_procesamiento.dart';
 
 class DashboardScreen extends StatefulWidget {
   final Usuario usuario;
@@ -136,6 +138,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
         value: 'Avanzado',
         icon: Icons.trending_up,
       ),
+       CardDataModel( // ← Esta es la nueva tarjeta
+        title: 'Altura',
+        value: 'Calcular',
+        icon: Icons.height,
+    ),
     ];
 
     return Scaffold(
