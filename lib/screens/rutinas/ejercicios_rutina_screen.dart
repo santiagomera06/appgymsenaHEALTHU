@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:healthu/services/desafio_service.dart';
 import 'package:healthu/widgets/progreso_desafios_card.dart';
+import 'package:healthu/screens/rutinas/precalentamiento_screen.dart';
+import 'package:healthu/models/rutina_model.dart';
 
 class EjerciciosRutinaScreen extends StatefulWidget {
   final int idDesafio;
@@ -27,7 +29,6 @@ class _EjerciciosRutinaScreenState extends State<EjerciciosRutinaScreen> {
   int _serieActual = 1;
   Map<String, dynamic>? _ultimoProgreso;
 
-  // Datos simulados de ejercicios (reemplazar con datos reales de la API)
   final List<Map<String, dynamic>> _ejercicios = [
     {
       'id': 1,
@@ -47,7 +48,7 @@ class _EjerciciosRutinaScreenState extends State<EjerciciosRutinaScreen> {
       'id': 3,
       'nombre': 'Plancha',
       'series': 3,
-      'repeticiones': 30, // segundos
+      'repeticiones': 30,
       'descripcion': 'Mantener posición de plancha',
     },
   ];
@@ -60,10 +61,9 @@ class _EjerciciosRutinaScreenState extends State<EjerciciosRutinaScreen> {
         backgroundColor: Colors.orange,
         foregroundColor: Colors.white,
       ),
-      body:
-          _cargando
-              ? const Center(child: CircularProgressIndicator())
-              : !_rutinaIniciada
+      body: _cargando
+          ? const Center(child: CircularProgressIndicator())
+          : !_rutinaIniciada
               ? _buildPantallaInicial()
               : _buildPantallaEjercicios(),
     );
@@ -75,32 +75,14 @@ class _EjerciciosRutinaScreenState extends State<EjerciciosRutinaScreen> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const Icon(
-            Icons.play_circle_outline,
-            size: 100,
-            color: Colors.orange,
-          ),
+          const Icon(Icons.play_circle_outline, size: 100, color: Colors.orange),
           const SizedBox(height: 24),
-          Text(
-            widget.nombreRutina,
-            style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-            textAlign: TextAlign.center,
-          ),
+          Text(widget.nombreRutina, style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
           const SizedBox(height: 16),
-          Text(
-            'Ejercicios: ${_ejercicios.length}',
-            style: const TextStyle(fontSize: 18),
-          ),
+          Text('Ejercicios: ${_ejercicios.length}', style: const TextStyle(fontSize: 18)),
           if (widget.registrosCreados != null) ...[
             const SizedBox(height: 8),
-            Text(
-              'Registros creados: ${widget.registrosCreados}',
-              style: const TextStyle(
-                fontSize: 16,
-                color: Colors.green,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
+            Text('Registros creados: ${widget.registrosCreados}', style: const TextStyle(fontSize: 16, color: Colors.green, fontWeight: FontWeight.w500)),
           ],
           const SizedBox(height: 32),
           SizedBox(
@@ -111,14 +93,9 @@ class _EjerciciosRutinaScreenState extends State<EjerciciosRutinaScreen> {
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.orange,
                 foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(25),
-                ),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(25)),
               ),
-              child: const Text(
-                'Iniciar',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-              ),
+              child: const Text('Iniciar', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
             ),
           ),
         ],
@@ -134,65 +111,35 @@ class _EjerciciosRutinaScreenState extends State<EjerciciosRutinaScreen> {
       padding: const EdgeInsets.all(16),
       child: Column(
         children: [
-          // Progreso
           LinearProgressIndicator(
             value: (_ejercicioActual + 1) / _ejercicios.length,
             backgroundColor: Colors.grey[300],
             valueColor: const AlwaysStoppedAnimation<Color>(Colors.orange),
           ),
           const SizedBox(height: 16),
-
-          // Información del ejercicio
           Card(
             child: Padding(
               padding: const EdgeInsets.all(16),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    ejercicio['nombre'],
-                    style: const TextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
+                  Text(ejercicio['nombre'], style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
                   const SizedBox(height: 8),
-                  Text(
-                    ejercicio['descripcion'],
-                    style: const TextStyle(fontSize: 16, color: Colors.grey),
-                  ),
+                  Text(ejercicio['descripcion'], style: const TextStyle(fontSize: 16, color: Colors.grey)),
                   const SizedBox(height: 16),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceAround,
                     children: [
                       Column(
                         children: [
-                          const Text(
-                            'Serie',
-                            style: TextStyle(color: Colors.grey),
-                          ),
-                          Text(
-                            '$_serieActual / $totalSeries',
-                            style: const TextStyle(
-                              fontSize: 20,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
+                          const Text('Serie', style: TextStyle(color: Colors.grey)),
+                          Text('$_serieActual / $totalSeries', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
                         ],
                       ),
                       Column(
                         children: [
-                          const Text(
-                            'Repeticiones',
-                            style: TextStyle(color: Colors.grey),
-                          ),
-                          Text(
-                            '${ejercicio['repeticiones']}',
-                            style: const TextStyle(
-                              fontSize: 20,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
+                          const Text('Repeticiones', style: TextStyle(color: Colors.grey)),
+                          Text('${ejercicio['repeticiones']}', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
                         ],
                       ),
                     ],
@@ -201,10 +148,7 @@ class _EjerciciosRutinaScreenState extends State<EjerciciosRutinaScreen> {
               ),
             ),
           ),
-
           const Spacer(),
-
-          // Información del último progreso
           if (_ultimoProgreso != null) ...[
             Card(
               color: Colors.green[50],
@@ -212,34 +156,17 @@ class _EjerciciosRutinaScreenState extends State<EjerciciosRutinaScreen> {
                 padding: const EdgeInsets.all(12),
                 child: Column(
                   children: [
-                    Text(
-                      'Series: ${_ultimoProgreso!['seriesRealizadas']}/${_ultimoProgreso!['seriesObjetivo']}',
-                      style: const TextStyle(fontWeight: FontWeight.w500),
-                    ),
+                    Text('Series: ${_ultimoProgreso!['seriesRealizadas']}/${_ultimoProgreso!['seriesObjetivo']}', style: const TextStyle(fontWeight: FontWeight.w500)),
                     if (_ultimoProgreso!['ejercicioCompletado'] == true)
-                      const Text(
-                        '¡Ejercicio completado!',
-                        style: TextStyle(
-                          color: Colors.green,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
+                      const Text('¡Ejercicio completado!', style: TextStyle(color: Colors.green, fontWeight: FontWeight.bold)),
                     if (_ultimoProgreso!['rutinaCompletada'] == true)
-                      const Text(
-                        '¡Rutina completada!',
-                        style: TextStyle(
-                          color: Colors.green,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
+                      const Text('¡Rutina completada!', style: TextStyle(color: Colors.green, fontWeight: FontWeight.bold)),
                   ],
                 ),
               ),
             ),
             const SizedBox(height: 16),
           ],
-
-          // Botón de acción
           SizedBox(
             width: double.infinity,
             height: 50,
@@ -248,29 +175,14 @@ class _EjerciciosRutinaScreenState extends State<EjerciciosRutinaScreen> {
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.orange,
                 foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(25),
-                ),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(25)),
               ),
-              child:
-                  _cargando
-                      ? const SizedBox(
-                        width: 20,
-                        height: 20,
-                        child: CircularProgressIndicator(
-                          color: Colors.white,
-                          strokeWidth: 2,
-                        ),
-                      )
-                      : Text(
-                        _ultimoProgreso?['rutinaCompletada'] == true
-                            ? 'Finalizar Rutina'
-                            : 'Siguiente Serie',
-                        style: const TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
+              child: _cargando
+                  ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                  : Text(
+                      _ultimoProgreso?['rutinaCompletada'] == true ? 'Finalizar Rutina' : 'Siguiente Serie',
+                      style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                    ),
             ),
           ),
         ],
@@ -279,192 +191,109 @@ class _EjerciciosRutinaScreenState extends State<EjerciciosRutinaScreen> {
   }
 
   Future<void> _iniciarEjercicios() async {
-    setState(() => _cargando = true);
+  setState(() => _cargando = true);
+  try {
+    final rutina = RutinaDetalle(
+      id: widget.idRutina,
+      nombre: widget.nombreRutina,
+      descripcion: '',
+      imagenUrl: '',
+      nivel: '',
+      ejercicios: [], // Puedes llenarlo si tienes los datos
+    );
 
-    try {
-      final desafioActual = await DesafioService.obtenerDesafioActual();
+    if (!mounted) return;
 
-      Map<String, dynamic>? patchResponse;
+    Navigator.pushReplacement(
+  context,
+  MaterialPageRoute(
+    builder: (_) => PrecalentamientoScreen(
+      rutina: rutina,
+      idDesafioRealizado: widget.idDesafio, // ✅ Aquí está el fix
+    ),
+  ),
+);
 
-      if (desafioActual != null) {
-        var idParaPatch = widget.idDesafio;
-        if (desafioActual['idDesafioRealiado'] != null) {
-          idParaPatch = desafioActual['idDesafioRealiado'];
-          print('USANDO idDesafioRealiado: $idParaPatch');
-        } else {
-          print('USANDO widget.idDesafio (fallback): $idParaPatch');
-        }
-
-        patchResponse = await DesafioService.iniciarRutinaDesafio(idParaPatch);
-      } else {
-        print('No se pudo obtener desafío actual, usando widget.idDesafio');
-
-        patchResponse = await DesafioService.iniciarRutinaDesafio(
-          widget.idDesafio,
-        );
-      }
-
-      final rutinaIniciada = patchResponse != null;
-
-      if (rutinaIniciada) {
-        setState(() {
-          _rutinaIniciada = true;
-          _cargando = false;
-        });
-
-        print('Intentando refrescar datos del dashboard...');
-        try {
-          await Future.delayed(const Duration(milliseconds: 800));
-          await DesafioService.obtenerDesafioActual();
-          await ProgresoDesafiosCard.refrescarGlobal();
-        } catch (reloadError) {
-          print(' Error al recargar datos del dashboard: $reloadError');
-        }
-
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('¡Rutina iniciada! Comenzando ejercicios...'),
-              backgroundColor: Colors.green,
-              duration: Duration(seconds: 2),
-            ),
-          );
-        }
-      } else {
-        throw Exception(
-          'El servidor no pudo iniciar la rutina. Verifica que el desafío exista y esté activo.',
-        );
-      }
-    } catch (e) {
-      print('Error al iniciar rutina: $e');
-
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error al iniciar rutina: $e'),
-            backgroundColor: Colors.red,
-            duration: const Duration(seconds: 4),
-            action: SnackBarAction(
-              label: 'Reintentar',
-              textColor: Colors.white,
-              onPressed: _iniciarEjercicios,
-            ),
-          ),
-        );
-      }
-
-      setState(() => _cargando = false);
-    }
-  }
-
-  Future<void> _siguienteSerie() async {
-    if (_ultimoProgreso?['rutinaCompletada'] == true) {
-      await _completarRutina();
-      return;
-    }
-
-    setState(() => _cargando = true);
-
-    try {
-      // Llamar al endpoint de actualizar serie
-      final progreso = await DesafioService.actualizarSerie(
-        idDesafioRealizado: widget.idDesafio,
-        idRutinaEjercicio: _ejercicios[_ejercicioActual]['id'],
+  } catch (e) {
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
       );
-
-      if (progreso != null) {
-        setState(() {
-          _ultimoProgreso = progreso;
-
-          // Si el ejercicio está completado, pasar al siguiente
-          if (progreso['ejercicioCompletado'] == true &&
-              _ejercicioActual < _ejercicios.length - 1) {
-            _ejercicioActual++;
-            _serieActual = 1;
-          } else if (progreso['ejercicioCompletado'] != true) {
-            // Incrementar serie actual
-            _serieActual++;
-          }
-        });
-
-        // Mostrar mensaje de progreso
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(
-                progreso['rutinaCompletada'] == true
-                    ? '¡Rutina completada!'
-                    : progreso['ejercicioCompletado'] == true
-                    ? '¡Ejercicio completado!'
-                    : 'Serie completada: ${progreso['seriesRealizadas']}/${progreso['seriesObjetivo']}',
-              ),
-              backgroundColor: Colors.green,
-            ),
-          );
-        }
-
-        if (progreso['rutinaCompletada'] == true) {
-          await _completarRutina();
-        }
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error al actualizar serie: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    } finally {
-      setState(() => _cargando = false);
     }
+  } finally {
+    if (mounted) setState(() => _cargando = false);
   }
+}
+
+
+ Future<void> _siguienteSerie() async {
+  setState(() => _cargando = true);
+  try {
+    final resultado = await DesafioService.actualizarSerie(
+      idDesafioRealizado: widget.idDesafio,
+      idRutinaEjercicio: _ejercicios[_ejercicioActual]['id'],
+    );
+
+    if (!resultado) throw Exception('No se pudo actualizar la serie');
+
+    setState(() {
+      if (_serieActual < (_ejercicios[_ejercicioActual]['series'] ?? 1)) {
+        _serieActual++;
+      } else if (_ejercicioActual < _ejercicios.length - 1) {
+        _ejercicioActual++;
+        _serieActual = 1;
+      } else {
+        // Rutina completada
+        _rutinaIniciada = false;
+      }
+    });
+
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(_rutinaIniciada
+            ? '✅ Serie completada'
+            : '🎉 ¡Rutina completada!'),
+        backgroundColor: Colors.green,
+      ),
+    );
+
+    if (!_rutinaIniciada) await _completarRutina();
+  } catch (e) {
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error al actualizar serie: $e'), backgroundColor: Colors.red),
+      );
+    }
+  } finally {
+    if (mounted) setState(() => _cargando = false);
+  }
+}
+
 
   Future<void> _completarRutina() async {
     try {
-      print(
-        '🎉 Completando rutina ${widget.idRutina} del desafío ${widget.idDesafio}...',
-      );
-
       final progreso = await DesafioService.registrarProgreso(
         idRutina: widget.idRutina,
         idDesafioRealizado: widget.idDesafio,
       );
 
       if (progreso != null && progreso['success'] == true) {
-        print(' Progreso registrado exitosamente');
-
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('🎉 ¡Rutina completada y progreso guardado!'),
-              backgroundColor: Colors.green,
-              duration: Duration(seconds: 3),
-            ),
-          );
-
-          await Future.delayed(const Duration(seconds: 2));
-
-          Navigator.of(context).pop(true);
-        }
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('🎉 ¡Rutina completada!'), backgroundColor: Colors.green),
+        );
+        await Future.delayed(const Duration(seconds: 2));
+        Navigator.of(context).pop(true);
       } else {
         throw Exception('No se pudo registrar el progreso');
       }
     } catch (e) {
-      print(' Error al completar rutina: $e');
-
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error al guardar progreso: $e'),
-            backgroundColor: Colors.red,
-            duration: const Duration(seconds: 3),
-          ),
-        );
-
-        Navigator.of(context).pop(false);
-      }
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error al guardar progreso: $e'), backgroundColor: Colors.red),
+      );
+      Navigator.of(context).pop(false);
     }
   }
 }

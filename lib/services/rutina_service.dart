@@ -76,39 +76,59 @@ class RutinaService {
     }
   }
 
-  static Future<bool> registrarSerieCompletada({
-    required int idRutina,
-    required int idEjercicio,
-  }) async {
-    try {
-      final token = await _obtenerToken();
-      if (token == null) return false;
-
-      final response = await http
-          .patch(
-            Uri.parse('$baseUrl/rutina-realizada/serie'),
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': 'Bearer $token',
-            },
-            body: json.encode({
-              'idDesafioRealizado': idRutina,
-              'idRutinaEjercicio': idEjercicio,
-            }),
-          )
-          .timeout(const Duration(seconds: timeoutSeconds));
-
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        return data['ejercicioCompletado'] == true ||
-            data['rutinaCompletada'] == true;
-      }
-      return false;
-    } catch (e) {
-      print('Error en registrarSerieCompletada: $e');
+ static Future<bool> registrarSerieCompletada({
+  required int idRutina,
+  required int idEjercicio,
+}) async {
+  try {
+    if (idRutina == null) {
+      print('❌ idDesafioRealizado (idRutina) aún es null, no se puede continuar.');
       return false;
     }
+
+    final token = await _obtenerToken();
+    if (token == null) {
+      print('❌ Token no encontrado');
+      return false;
+    }
+
+    final url = '$baseUrl/rutina-realizada/serie';
+    final body = {
+      'idDesafioRealizado': idRutina,
+      'idRutinaEjercicio': idEjercicio,
+    };
+
+    print('📡 PATCH → $url');
+    print('📦 Body: $body');
+
+    final response = await http
+        .patch(
+          Uri.parse(url),
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer $token',
+          },
+          body: json.encode(body),
+        )
+        .timeout(const Duration(seconds: timeoutSeconds));
+
+    print('📥 Status: ${response.statusCode}');
+    print('📥 Response: ${response.body}');
+
+    if (response.statusCode == 200) {
+      final data = json.decode(response.body);
+      return data['ejercicioCompletado'] == true ||
+          data['rutinaCompletada'] == true;
+    } else {
+      print('⚠️ Falló la petición con status ${response.statusCode}');
+      return false;
+    }
+  } catch (e) {
+    print('❌ Error en registrarSerieCompletada: $e');
+    return false;
   }
+}
+
 
   static Future<bool> registrarProgresoEjercicio({
     required int idRutina,

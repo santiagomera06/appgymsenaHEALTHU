@@ -27,6 +27,7 @@ class DesafioService {
   static Future<Map<String, dynamic>?> obtenerDesafioActual() async {
     try {
       final headers = await _getAuthHeaders();
+      print('🔐 Headers: $headers');
       final url = ApiConfig.getUrl('/desafios/obtenerDesafioActual');
 
       final response = await http
@@ -130,36 +131,73 @@ class DesafioService {
     }
   }
 
-  static Future<Map<String, dynamic>?> actualizarSerie({
+  /// Registra el inicio de la rutina en el endpoint POST /rutina-realizada/RegistrarProgreso
+static Future<Map<String, dynamic>?> registrarInicioRutina({
+  required int idRutina,
+  required int idDesafioRealizado,
+}) async {
+  try {
+    final headers = await _getAuthHeaders();
+    final body = {
+      'idRutina': idRutina,
+      'idDesafioRealizado': idDesafioRealizado,
+    };
+    final url = ApiConfig.getUrl('/rutina-realizada/RegistrarProgreso');
+    print('POST $url');
+    print('Body: $body');
+
+    final response = await http
+        .post(
+          Uri.parse(url),
+          headers: headers,
+          body: json.encode(body),
+        )
+        .timeout(const Duration(seconds: 60));
+
+    print('Status: ${response.statusCode}');
+    print('Response: ${response.body}');
+
+    // Aceptar 200 o 201
+    if (response.statusCode == 200 || response.statusCode == 201) {
+      return json.decode(response.body) as Map<String, dynamic>;
+    } else {
+      print('Error registrarInicioRutina: ${response.statusCode}');
+      return null;
+    }
+  } catch (e) {
+    print('Error en registrarInicioRutina: $e');
+    return null;
+  }
+}
+
+  static Future<bool> actualizarSerie({
     required int idDesafioRealizado,
     required int idRutinaEjercicio,
   }) async {
-    try {
-      final headers = await _getAuthHeaders();
-      final requestBody = {
-        'idDesafioRealizado': idDesafioRealizado,
-        'idRutinaEjercicio': idRutinaEjercicio,
-      };
+    // 1. VALIDACIÓN DE IDs
+    print(
+      ' Validando IDs: DesafioRealizado=$idDesafioRealizado, RutinaEjercicio=$idRutinaEjercicio',
+    );
+    final headers = await _getAuthHeaders();
+    final url = Uri.parse('${ApiConfig.baseUrl}/rutina-realizada/serie');
 
-      final url = ApiConfig.getUrl('/rutina-realizada/serie');
+    final requestBody = jsonEncode({
+      "idDesafioRealizado": idDesafioRealizado,
+      "idRutinaEjercicio": idRutinaEjercicio,
+    });
 
-      final response = await http
-          .post(
-            Uri.parse(url),
-            headers: headers,
-            body: json.encode(requestBody),
-          )
-          .timeout(const Duration(seconds: 60));
+    final response = await http.patch(url, headers: headers, body: requestBody);
 
-      if (response.statusCode == 200) {
-        return json.decode(response.body);
-      } else {
-        print('Error actualizarSerie: ${response.statusCode}');
-        return null;
-      }
-    } catch (e) {
-      print('Error al actualizar serie: $e');
-      return null;
+    print('📡 PATCH → $url');
+    print('📦 Body: $requestBody');
+    print('📥 Status: ${response.statusCode}');
+    print('📥 Response: ${response.body}');
+
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+      return data['success'] == true;
     }
+
+    return false;
   }
 }

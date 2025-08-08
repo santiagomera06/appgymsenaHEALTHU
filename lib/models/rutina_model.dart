@@ -35,25 +35,25 @@ class RutinaDetalle {
     }
   }
 
- RutinaDetalle copyWith({
-  int? id,
-  String? nombre,
-  String? descripcion,
-  String? imagenUrl,
-  String? nivel,
-  bool? completada,
-  List<EjercicioRutina>? ejercicios,
-}) {
-  return RutinaDetalle(
-    id: id ?? this.id,
-    nombre: nombre ?? this.nombre,
-    descripcion: descripcion ?? this.descripcion,
-    imagenUrl: imagenUrl ?? this.imagenUrl,
-    nivel: nivel ?? this.nivel,
-    completada: completada ?? this.completada,
-    ejercicios: ejercicios ?? this.ejercicios,
-  );
-}
+  RutinaDetalle copyWith({
+    int? id,
+    String? nombre,
+    String? descripcion,
+    String? imagenUrl,
+    String? nivel,
+    bool? completada,
+    List<EjercicioRutina>? ejercicios,
+  }) {
+    return RutinaDetalle(
+      id: id ?? this.id,
+      nombre: nombre ?? this.nombre,
+      descripcion: descripcion ?? this.descripcion,
+      imagenUrl: imagenUrl ?? this.imagenUrl,
+      nivel: nivel ?? this.nivel,
+      completada: completada ?? this.completada,
+      ejercicios: ejercicios ?? this.ejercicios,
+    );
+  }
 }
 
 class EjercicioRutina {
@@ -68,6 +68,8 @@ class EjercicioRutina {
   final bool completado;
   final int? tiempoRealizado;
 
+   final int? idRutinaEjercicio;
+
   EjercicioRutina({
     required this.id,
     required this.nombre,
@@ -79,6 +81,7 @@ class EjercicioRutina {
     required this.duracionEstimada,
     this.completado = false,
     this.tiempoRealizado,
+     this.idRutinaEjercicio,
   });
 
   factory EjercicioRutina.fromJson(Map<String, dynamic> json) {
@@ -94,6 +97,7 @@ class EjercicioRutina {
         duracionEstimada: json['timeplacement'] ?? json['duracionEstimada'] ?? 60,
         completado: json['completed'] ?? json['completado'] ?? false,
         tiempoRealizado: json['time'] ?? json['tiempoRealizado'],
+         idRutinaEjercicio: json['idRutinaEjercicio'],
       );
     } catch (e) {
       throw Exception('Error al crear EjercicioRutina: ${e.toString()}');
@@ -101,21 +105,27 @@ class EjercicioRutina {
   }
 
   EjercicioRutina copyWith({
-    bool? completado,
-    int? tiempoRealizado,
+    int? id,
+    String? nombre,
     int? series,
     int? repeticiones,
     double? pesoRecomendado,
+    String? descripcion,
+    String? imagenUrl,
+    int? duracionEstimada,
+    bool? completado,
+    int? tiempoRealizado,
+    int? idRutinaEjercicio, 
   }) {
     return EjercicioRutina(
-      id: id,
-      nombre: nombre,
+      id: id ?? this.id,
+      nombre: nombre ?? this.nombre,
       series: series ?? this.series,
       repeticiones: repeticiones ?? this.repeticiones,
       pesoRecomendado: pesoRecomendado ?? this.pesoRecomendado,
-      descripcion: descripcion,
-      imagenUrl: imagenUrl,
-      duracionEstimada: duracionEstimada,
+      descripcion: descripcion ?? this.descripcion,
+      imagenUrl: imagenUrl ?? this.imagenUrl,
+      duracionEstimada: duracionEstimada ?? this.duracionEstimada,
       completado: completado ?? this.completado,
       tiempoRealizado: tiempoRealizado ?? this.tiempoRealizado,
     );
