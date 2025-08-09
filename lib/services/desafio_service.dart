@@ -170,34 +170,64 @@ static Future<Map<String, dynamic>?> registrarInicioRutina({
   }
 }
 
-  static Future<bool> actualizarSerie({
-    required int idDesafioRealizado,
-    required int idRutinaEjercicio,
-  }) async {
-    // 1. VALIDACIÓN DE IDs
-    print(
-      ' Validando IDs: DesafioRealizado=$idDesafioRealizado, RutinaEjercicio=$idRutinaEjercicio',
-    );
-    final headers = await _getAuthHeaders();
-    final url = Uri.parse('${ApiConfig.baseUrl}/rutina-realizada/serie');
+static Future<Map<String, dynamic>?> actualizarSerie({
+  required int idDesafioRealizado,
+  required int idRutinaEjercicio,
+}) async {
+  // 1) Logs
+  print(' Validando IDs: DesafioRealizado=$idDesafioRealizado, RutinaEjercicio=$idRutinaEjercicio');
 
-    final requestBody = jsonEncode({
-      "idDesafioRealizado": idDesafioRealizado,
-      "idRutinaEjercicio": idRutinaEjercicio,
-    });
+  // 2) Request
+  final headers = await _getAuthHeaders();
+  final url = Uri.parse('${ApiConfig.baseUrl}/rutina-realizada/serie');
 
-    final response = await http.patch(url, headers: headers, body: requestBody);
+  final requestBody = jsonEncode({
+    "idDesafioRealizado": idDesafioRealizado,
+    "idRutinaEjercicio": idRutinaEjercicio,
+  });
 
-    print('📡 PATCH → $url');
-    print('📦 Body: $requestBody');
-    print('📥 Status: ${response.statusCode}');
-    print('📥 Response: ${response.body}');
+  final response = await http.patch(url, headers: headers, body: requestBody);
 
-    if (response.statusCode == 200) {
-      final data = jsonDecode(response.body);
-      return data['success'] == true;
+  print('📡 PATCH → $url');
+  print('📦 Body: $requestBody');
+  print('📥 Status: ${response.statusCode}');
+  print('📥 Response: ${response.body}');
+
+  // 3) Respuesta esperada: {seriesRealizadas, seriesObjetivo, ejercicioCompletado, rutinaCompletada}
+  if (response.statusCode == 200) {
+    try {
+      final data = jsonDecode(response.body) as Map<String, dynamic>;
+      return data;
+    } catch (e) {
+      print('⚠️ Error parseando respuesta: $e');
+      return null;
     }
-
-    return false;
   }
+
+  return null;
+}
+
+// lib/services/desafio_service.dart
+static Future<List<Map<String, dynamic>>> obtenerEjerciciosRealizados({
+  required int idDesafioRealizado,
+}) async {
+  final headers = await _getAuthHeaders();
+
+  // ⚠️ AJUSTA ESTA RUTA A LA REAL DE TU API
+  final url = ApiConfig.getUrl('/rutina-realizada/detalle/$idDesafioRealizado');
+  final res = await http.get(Uri.parse(url), headers: headers);
+
+  if (res.statusCode != 200) return [];
+
+  final data = jsonDecode(res.body);
+  // Puede venir como {ejercicios: [...] } o directamente como lista [...]
+  final lista = (data is List)
+      ? data
+      : (data['ejercicios'] ?? data['items'] ?? []) as List<dynamic>;
+
+  // Esperamos algo tipo: { idRutinaEjercicio, idEjercicio, ... }
+  return lista.cast<Map<String, dynamic>>();
+}
+
+
 }

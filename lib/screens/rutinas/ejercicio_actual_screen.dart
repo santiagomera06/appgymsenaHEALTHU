@@ -1,12 +1,8 @@
   import 'package:flutter/material.dart';
   import 'package:healthu/models/rutina_model.dart';
-  import 'package:healthu/services/rutina_service.dart';
   import 'package:healthu/screens/validar_instructor_screen.dart';
   import 'package:healthu/widgets/temporizador.dart';
-  import 'package:lottie/lottie.dart';
-  import 'package:http/http.dart' as http;
   import 'package:healthu/services/desafio_service.dart';
-
 
   class EjercicioActualScreen extends StatefulWidget {
     final RutinaDetalle rutina;
@@ -25,39 +21,22 @@
   }
 
   class _EjercicioActualScreenState extends State<EjercicioActualScreen> {
-    late int _seriesCompletadas;
+    late List<int> _seriesHechas; // contador local por ejercicio
+
     late bool _ejercicioCompletado;
-    late List<int> _idsRutinaEjercicio;
     final _timerKey = GlobalKey<TemporizadorWidgetState>();
     bool _isUpdating = false;
-    bool _rutinaCompletada = false;
-    int? _idDesafioRealizado;
     bool _puedeAvanzar = false;
 
   @override
   void initState() {
     super.initState();
-    _seriesCompletadas = 0;
     _ejercicioCompletado = false;
-
-    _idsRutinaEjercicio = widget.rutina.ejercicios
-        .map((e) => e.idRutinaEjercicio ?? 0)
-        .toList();
+    _seriesHechas = List<int>.filled(widget.rutina.ejercicios.length, 0);
   }
 
 
     EjercicioRutina get _ejercicio => widget.rutina.ejercicios[widget.ejercicioIndex];
-
-    Future<void> _verificarConexion() async {
-      try {
-        final response = await http.get(Uri.parse('https://www.google.com'));
-        if (response.statusCode != 200) {
-          _mostrarErrorSnackbar('Sin conexión a Internet');
-        }
-      } catch (e) {
-        _mostrarErrorSnackbar('Error de conexión');
-      }
-    }
 
     void _mostrarErrorSnackbar(String mensaje) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -68,231 +47,130 @@
       );
     }
 
-  Future<void> _iniciarRutinaDesafio() async {
-    final desafio = await DesafioService.obtenerDesafioActual();
-    if (desafio != null) {
-      print('📥 Desafío actual: $desafio');
+Future<void> _siguienteEjercicio() async {
+  if (_isUpdating || _puedeAvanzar != true) return;
+  setState(() {
+    _isUpdating = true;
+    _puedeAvanzar = false; // el usuario debe correr otra vez el temporizador para la próxima serie
+  });
 
-      final idDesafioRealizado = desafio['idDesafioRealizado'];
+  try {
+    final idx = widget.ejercicioIndex;
+    final ej = widget.rutina.ejercicios[idx];
+    final objetivo = (ej.series <= 0) ? 1 : ej.series;
 
-      if (idDesafioRealizado == null) {
-        print('❌ idDesafioRealizado está ausente');
-        return;
-      }
-
-      setState(() {
-        _idDesafioRealizado = idDesafioRealizado;
-      });
-
-      // Ahora podemos empezar a registrar el progreso
-      await _registrarProgreso();
-    }
-  }
-
-  Future<void> _registrarProgreso() async {
-    if (_idDesafioRealizado != null) {
-      final idRutinaEjercicio = widget.rutina.ejercicios[widget.ejercicioIndex].idRutinaEjercicio;
-
-      print('🧩 idDesafioRealizado: $_idDesafioRealizado');
-      print('🏋️ idRutinaEjercicio: $idRutinaEjercicio');
-
-      if (idRutinaEjercicio != null) {
-        final resultado = await DesafioService.actualizarSerie(
-          idDesafioRealizado: _idDesafioRealizado!,
-          idRutinaEjercicio: idRutinaEjercicio,
-        );
-
-        if (resultado) {
-          print('✅ Progreso actualizado');
-        } else {
-          print('❌ Error al actualizar progreso');
-        }
-      }
-    }
-  }
-
-
-  Future<void> _siguienteEjercicio() async {
-    if (_isUpdating) return;
-    setState(() => _isUpdating = true);
-
-    try {
-      if (_idDesafioRealizado != null) {
-        final idRutinaEjercicio = widget.rutina.ejercicios[widget.ejercicioIndex].idRutinaEjercicio;
-
-        print('🧩 idDesafioRealizado: $_idDesafioRealizado');
-        print('🏋️ idRutinaEjercicio: $idRutinaEjercicio');
-
-        if (idRutinaEjercicio == null) {
-          _mostrarErrorSnackbar('Error: idRutinaEjercicio es nulo');
-          return;
-        }
-  print('✅ IDs para enviar:');
-  print('idDesafioRealizado: $_idDesafioRealizado');
-  print('idRutinaEjercicio: $idRutinaEjercicio');
-        final resultado = await DesafioService.actualizarSerie(
-          idDesafioRealizado: _idDesafioRealizado!,
-          idRutinaEjercicio: idRutinaEjercicio,
-        );
-
-        if (resultado == false) {
-          _mostrarErrorSnackbar('No se pudo actualizar la serie del desafío');
-          return;
-        }
-      }
-
-      // ✅ 2. Registrar serie local de rutina
-      final serieRegistrada = await RutinaService.registrarSerieCompletada(
-        idEjercicio: _ejercicio.id,
-        idRutina: widget.rutina.id,
+    final int? idRutinaEjercicio = ej.idRutinaEjercicio; // DEBE venir hidratado
+    if (idRutinaEjercicio == null) {
+      _mostrarErrorSnackbar(
+        'No se encontró idRutinaEjercicio para este ejercicio. '
+        'Regresa y vuelve a iniciar la rutina.',
       );
-
-      if (!serieRegistrada) {
-        _mostrarErrorSnackbar('No se pudo registrar la serie completada');
-        return;
-      }
-
-      setState(() {
-        _seriesCompletadas++;
-        _ejercicioCompletado = _seriesCompletadas >= _ejercicio.series;
-      });
-
-      if (!_ejercicioCompletado) {
-        _timerKey.currentState?.reset();
-        setState(() {
-          _puedeAvanzar = false;
-        });
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Serie $_seriesCompletadas/${_ejercicio.series} completada'),
-            duration: const Duration(seconds: 2),
-          ),
-        );
-        return;
-      }
-
-      final progresoRegistrado = await RutinaService.registrarProgresoEjercicio(
-        idRutina: widget.rutina.id,
-        idEjercicio: _ejercicio.id,
-      );
-
-      if (!progresoRegistrado) {
-        _mostrarErrorSnackbar('No se pudo registrar el progreso del ejercicio');
-        return;
-      }
-
-      final ejercicioActualizado = _ejercicio.copyWith(
-        completado: true,
-        tiempoRealizado: _timerKey.currentState?.tiempoTranscurrido,
-      );
-
-    final rutinaActualizada = widget.rutina.copyWith(
-    ejercicios: List<EjercicioRutina>.from(widget.rutina.ejercicios)
-      ..[widget.ejercicioIndex] = _ejercicio.copyWith(completado: true),
-  );
-
-
-      if (widget.ejercicioIndex < widget.rutina.ejercicios.length - 1) {
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(
-            builder: (_) => EjercicioActualScreen(
-              rutina: rutinaActualizada,
-              ejercicioIndex: widget.ejercicioIndex + 1,
-              idDesafioRealizado: widget.idDesafioRealizado,
-            ),
-          ),
-        );
-      } else {
-        await _marcarRutinaCompletada();
-        await _mostrarDialogoCompletado(rutinaActualizada);
-      }
-    } catch (e) {
-      _mostrarErrorSnackbar('Error: $e');
-    } finally {
-      if (mounted) setState(() => _isUpdating = false);
-    }
-  }
-
-
-    Future<void> _marcarRutinaCompletada() async {
-      try {
-        final ejercicioActualizado = _ejercicio.copyWith(
-          completado: true,
-          tiempoRealizado: _timerKey.currentState?.tiempoTranscurrido,
-        );
-
-        final ejerciciosActualizados = List<EjercicioRutina>.from(widget.rutina.ejercicios)
-          ..[widget.ejercicioIndex] = ejercicioActualizado;
-
-        await RutinaService.actualizarRutina(
-          widget.rutina.id.toString(),
-          {
-            "completada": true,
-            "ejercicios": ejerciciosActualizados.map((e) => {
-                  'id': e.id,
-                  'completed': e.completado,
-                  'time': e.tiempoRealizado,
-                }).toList(),
-          },
-        );
-
-        if (mounted) setState(() => _rutinaCompletada = true);
-      } catch (e) {
-        _mostrarErrorSnackbar('Error al finalizar rutina');
-      }
+      return;
     }
 
-    Future<void> _mostrarDialogoCompletado(RutinaDetalle rutina) async {
-      await showDialog(
-        context: context,
-        barrierDismissible: false,
-        builder: (_) => AlertDialog(
-          title: const Row(
-            children: [
-              Icon(Icons.emoji_events, color: Colors.orange),
-              SizedBox(width: 8),
-              Text('¡Rutina completada!'),
-            ],
+    // Llamamos al backend (pero NO usamos su bandera para decidir si avanzar)
+    await DesafioService.actualizarSerie(
+      idDesafioRealizado: widget.idDesafioRealizado,
+      idRutinaEjercicio: idRutinaEjercicio,
+    );
+
+    // —— REGLA LOCAL: sumamos UNA serie al ejercicio actual
+    final nuevasHechas = (_seriesHechas[idx] + 1).clamp(0, objetivo);
+
+    setState(() {
+      _seriesHechas[idx] = nuevasHechas;
+      _ejercicioCompletado = nuevasHechas >= objetivo;
+    });
+
+    // ¿Aún faltan series? → NO AVANZA DE EJERCICIO
+    if (!_ejercicioCompletado) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Serie ${_seriesHechas[idx]}/$objetivo completada. '
+              'Inicia el temporizador para la siguiente serie.'),
+          duration: const Duration(seconds: 2),
+        ),
+      );
+      _timerKey.currentState?.reset();   // no lo inicies; el usuario decide
+      return;
+    }
+
+    // —— Ejercicio COMPLETO (todas las series)
+    final total = widget.rutina.ejercicios.length;
+    final idxHumano = idx + 1;
+
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('¡Bien! Completaste el ejercicio $idxHumano de $total.'),
+        backgroundColor: Colors.green,
+        duration: const Duration(seconds: 2),
+      ),
+    );
+
+    await Future.delayed(const Duration(milliseconds: 900));
+    if (!mounted) return;
+
+    final bool haySiguiente = idx < total - 1;
+    if (haySiguiente) {
+      _timerKey.currentState?.reset(); // limpio antes de ir al siguiente
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (_) => EjercicioActualScreen(
+            rutina: widget.rutina,
+            ejercicioIndex: idx + 1,
+            idDesafioRealizado: widget.idDesafioRealizado,
           ),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Text('Has finalizado todos los ejercicios de la rutina.'),
-              const SizedBox(height: 16),
-              Lottie.asset('assets/animations/success.json', width: 150, height: 150, repeat: false),
-              const SizedBox(height: 16),
-              ElevatedButton.icon(
-                onPressed: () {
-                  Navigator.of(context).pop();
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => ValidarInstructorScreen(rutinaId: rutina.id.toString()),
-                    ),
-                  );
-                },
-                icon: const Icon(Icons.qr_code),
-                label: const Text('Validar con instructor'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.green[800],
-                  foregroundColor: Colors.white,
-                ),
-              ),
-            ],
+        ),
+      );
+    } else {
+      // Último ejercicio → mostrar diálogo y luego navegar a ValidarInstructorScreen
+      await _mostrarDialogoCompletado(widget.rutina);
+      if (!mounted) return;
+      _timerKey.currentState?.reset();
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (_) => ValidarInstructorScreen(
+            rutinaId: widget.rutina.id.toString(),
           ),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-                Navigator.popUntil(context, (route) => route.isFirst);
-              },
-              child: const Text('Cerrar'),
-            ),
-          ],
         ),
       );
     }
+  } catch (e) {
+    _mostrarErrorSnackbar('Error al actualizar serie: $e');
+  } finally {
+    if (mounted) setState(() => _isUpdating = false);
+  }
+}
+
+
+Future<void> _mostrarDialogoCompletado(RutinaDetalle rutina) async {
+  await showDialog(
+    context: context,
+    barrierDismissible: false,
+    builder: (_) => AlertDialog(
+      title: const Row(
+        children: [
+          Icon(Icons.emoji_events, color: Colors.orange),
+          SizedBox(width: 8),
+          Text('¡Rutina completada!'),
+        ],
+      ),
+      content: const Text(
+        'Has finalizado todos los ejercicios. Ahora debes validarla con el instructor.',
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('Continuar'),
+        ),
+      ],
+    ),
+  );
+}
 
     Widget _buildInfoRow(String label, String value) {
       return Padding(
@@ -309,7 +187,10 @@
 
     @override
     Widget build(BuildContext context) {
+      final int hechas = _seriesHechas[widget.ejercicioIndex];
+  final int objetivo = (_ejercicio.series <= 0) ? 1 : _ejercicio.series;
       return Scaffold(
+  
         appBar: AppBar(
           title: Text('Ejercicio ${widget.ejercicioIndex + 1}/${widget.rutina.ejercicios.length}'),
           backgroundColor: Colors.green[800],
@@ -348,14 +229,14 @@
               const SizedBox(height: 24),
               Text(_ejercicio.nombre, style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
               const SizedBox(height: 16),
-              LinearProgressIndicator(
-                value: _seriesCompletadas / _ejercicio.series,
-                minHeight: 10,
-                backgroundColor: Colors.grey[300],
-                color: Colors.green,
-              ),
-              const SizedBox(height: 8),
-              Text('Progreso: $_seriesCompletadas/${_ejercicio.series} series', style: const TextStyle(fontSize: 16)),
+             LinearProgressIndicator(
+  value: (objetivo == 0) ? 0 : (hechas / objetivo),
+  minHeight: 10,
+  backgroundColor: Colors.grey[300],
+  color: Colors.green,
+),
+const SizedBox(height: 8),
+Text('Progreso: $hechas/$objetivo series', style: const TextStyle(fontSize: 16)),
               const SizedBox(height: 16),
               Card(
                 child: Padding(
@@ -384,16 +265,13 @@
                 Text(_ejercicio.descripcion, style: const TextStyle(fontSize: 16)),
                 const SizedBox(height: 24),
               ],
-      TemporizadorWidget(
-    key: _timerKey,
-    segundos: 3,
-    onComplete: () {
-      setState(() {
-        _puedeAvanzar = true;
-      });
-    },
-  ),
-
+  TemporizadorWidget(
+  key: _timerKey,
+  segundos: 3, // o lo que toque
+  onComplete: () {
+    setState(() { _puedeAvanzar = true; });
+  },
+),
 
             ],
           ),

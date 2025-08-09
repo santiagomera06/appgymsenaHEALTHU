@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:healthu/models/rutina_model.dart';
 import 'package:healthu/screens/rutinas/ejercicio_actual_screen.dart';
 import 'package:healthu/services/desafio_service.dart';
-
+import 'package:healthu/services/rutina_service.dart';
 
 class PrecalentamientoScreen extends StatelessWidget {
   final RutinaDetalle rutina;
@@ -14,66 +14,125 @@ class PrecalentamientoScreen extends StatelessWidget {
     required this.idDesafioRealizado,
   });
 
-Future<void> _iniciarEjercicios(BuildContext context) async {
-  try {
-    // 1) Mostrar loader
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (_) => const Center(child: CircularProgressIndicator()),
-    );
+  Future<void> _iniciarEjercicios(BuildContext context) async {
+    try {
+      // 0) Si por alguna razón viene sin ejercicios, corta
+      if (rutina.ejercicios.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Esta rutina no tiene ejercicios.'),
+            backgroundColor: Colors.orange,
+          ),
+        );
+        return;
+      }
 
-    // 2) Marcar el inicio de la rutina (el 201 con registrosCreados: 0 es válido)
-    final inicio = await DesafioService.registrarInicioRutina(
-      idRutina: rutina.id,
-      idDesafioRealizado: idDesafioRealizado,
-    );
+      // 1) Loader
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (_) => const Center(child: CircularProgressIndicator()),
+      );
 
-    // 3) Cerrar loader
-    if (context.mounted) Navigator.pop(context);
+      // 2) Iniciar rutina (201 con registrosCreados: X es válido)
+      final inicio = await DesafioService.registrarInicioRutina(
+        idRutina: rutina.id,
+        idDesafioRealizado: idDesafioRealizado,
+      );
 
-    // 4) Validar respuesta y navegar
-    if (inicio == null || inicio['success'] != true) {
+      if (inicio == null || inicio['success'] != true) {
+        if (context.mounted) Navigator.pop(context);
+        if (!context.mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Error al iniciar la rutina.'),
+            backgroundColor: Colors.red,
+          ),
+        );
+        return;
+      }
+
+      // 3) ¿Ya tenemos idRutinaEjercicio?
+      RutinaDetalle rutinaParaNavegar = rutina;
+      final faltantesLocales =
+          rutina.ejercicios.where((e) => e.idRutinaEjercicio == null).length;
+
+      debugPrint('→ ejercicios en UI: ${rutina.ejercicios.length}. '
+          'Faltan idRutinaEjercicio en UI: $faltantesLocales');
+
+      if (faltantesLocales > 0) {
+        // Re-hidratar desde GET /rutina/obtenerRutina/{id}
+        final r = await RutinaService.obtenerRutina(rutina.id.toString());
+
+        final faltantesRemotos =
+            r.ejercicios.where((e) => e.idRutinaEjercicio == null).length;
+
+        debugPrint('→ ejercicios backend: ${r.ejercicios.length}. '
+            'Faltan idRutinaEjercicio desde backend: $faltantesRemotos');
+
+        if (faltantesRemotos > 0) {
+          if (context.mounted) Navigator.pop(context);
+          if (!context.mounted) return;
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                'No se pudieron obtener $faltantesRemotos id(s) de rutina-ejercicio. Intenta de nuevo.',
+              ),
+              backgroundColor: Colors.orange,
+            ),
+          );
+          return;
+        }
+
+        rutinaParaNavegar = r;
+      }
+
+      // 4) Cerrar loader
+      if (context.mounted) Navigator.pop(context);
+
+      // 4.1) Evitar navegar si quedó vacía (por si acaso)
+      if (rutinaParaNavegar.ejercicios.isEmpty) {
+        if (!context.mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('No se encontraron ejercicios para esta rutina.'),
+            backgroundColor: Colors.orange,
+          ),
+        );
+        return;
+      }
+
+      // 5) Feedback y navegar
+      if (!context.mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Error al iniciar la rutina.'),
-          backgroundColor: Colors.red,
+          content: Text('Rutina iniciada. ¡Vamos!'),
+          backgroundColor: Colors.green,
         ),
       );
-      return;
-    }
 
-    // (Opcional) feedback de éxito
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Rutina iniciada correctamente.'),
-        backgroundColor: Colors.green,
-      ),
-    );
-
-    // 5) Ir al primer ejercicio
-    if (context.mounted) {
+      if (!context.mounted) return;
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(
           builder: (_) => EjercicioActualScreen(
-            rutina: rutina,
+            rutina: rutinaParaNavegar,
             ejercicioIndex: 0,
             idDesafioRealizado: idDesafioRealizado,
           ),
         ),
       );
+    } catch (e) {
+      if (context.mounted) Navigator.pop(context);
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error inesperado: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
     }
-  } catch (e) {
-    if (context.mounted) Navigator.pop(context);
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Error inesperado: $e'),
-        backgroundColor: Colors.red,
-      ),
-    );
   }
-}
 
   @override
   Widget build(BuildContext context) {
@@ -126,3 +185,4 @@ Future<void> _iniciarEjercicios(BuildContext context) async {
     );
   }
 }
+

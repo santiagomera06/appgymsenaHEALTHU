@@ -128,6 +128,7 @@ class EjercicioRutina {
       duracionEstimada: duracionEstimada ?? this.duracionEstimada,
       completado: completado ?? this.completado,
       tiempoRealizado: tiempoRealizado ?? this.tiempoRealizado,
+      idRutinaEjercicio: idRutinaEjercicio ?? this.idRutinaEjercicio,
     );
   }
 }

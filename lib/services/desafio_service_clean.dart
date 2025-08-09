@@ -134,41 +134,34 @@ class DesafioService {
     }
   }
 
-  static Future<Map<String, dynamic>?> actualizarSerie({
-    required int idDesafioRealizado,
-    required int idRutinaEjercicio,
-  }) async {
+static Future<Map<String, dynamic>?> actualizarSerie({
+  required int idDesafioRealizado,
+  required int idRutinaEjercicio,
+}) async {
+  final headers = await _getAuthHeaders();
+  final url = Uri.parse('${ApiConfig.baseUrl}/rutina-realizada/serie');
+
+  final requestBody = jsonEncode({
+    "idDesafioRealizado": idDesafioRealizado,
+    "idRutinaEjercicio": idRutinaEjercicio,
+  });
+
+  final response = await http.patch(url, headers: headers, body: requestBody);
+
+  print('📡 PATCH → $url');
+  print('📦 Body: $requestBody');
+  print('📥 Status: ${response.statusCode}');
+  print('📥 Response: ${response.body}');
+
+  if (response.statusCode == 200) {
     try {
-      final headers = await _getAuthHeaders();
-      final requestBody = {
-        'idDesafioRealizado': idDesafioRealizado,
-        'idRutinaEjercicio': idRutinaEjercicio,
-      };
-
-      final url = ApiConfig.getUrl('/rutina-realizada/serie');
-      print('POST $url');
-      print('Body: $requestBody');
-
-      final response = await http
-          .post(
-            Uri.parse(url),
-            headers: headers,
-            body: json.encode(requestBody),
-          )
-          .timeout(const Duration(seconds: 60));
-
-      print('Status: ${response.statusCode}');
-      print('Response: ${response.body}');
-
-      if (response.statusCode == 200) {
-        return json.decode(response.body);
-      } else {
-        print(' Error: código ${response.statusCode}');
-        return null;
-      }
+      return jsonDecode(response.body) as Map<String, dynamic>;
     } catch (e) {
-      print('Error al actualizar serie: $e');
-      return null;
+      print('⚠️ Error parseando respuesta: $e');
     }
   }
+
+  return null;
+}
+
 }
