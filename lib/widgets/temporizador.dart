@@ -34,21 +34,26 @@ class TemporizadorWidgetState extends State<TemporizadorWidget> {
   }
 
   void start() {
-    if (isRunning) return;
-    
-    setState(() {});
-    _timer = Timer.periodic(const Duration(seconds: 1), (_) {
-      if (_tiempoRestante > 0) {
-        setState(() {
-          _tiempoRestante--;
-          _tiempoTranscurrido++;
-        });
-      } else {
-        _complete();
-      }
-    });
-  }
+  if (isRunning) return;
 
+  _timer = Timer.periodic(const Duration(seconds: 1), (_) {
+    if (_tiempoRestante > 0) {
+      setState(() {
+        _tiempoRestante--;
+        _tiempoTranscurrido++;
+      });
+      if (_tiempoRestante == 0) {
+        _complete(); // <-- dispara justo cuando llega a 0
+      }
+    }
+  });
+}
+
+void _complete() {
+  _timer?.cancel();
+  setState(() {}); // opcional: asegura refresco de UI
+  widget.onComplete();
+}
   void pause() {
     _timer?.cancel();
     setState(() {});
@@ -61,11 +66,10 @@ class TemporizadorWidgetState extends State<TemporizadorWidget> {
       _tiempoTranscurrido = 0;
     });
   }
-
-  void _complete() {
-    _timer?.cancel();
-    widget.onComplete();
-  }
+  void restart() {
+  reset();
+  start();
+}
 
   @override
   void dispose() {

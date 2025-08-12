@@ -27,6 +27,7 @@ class DesafioService {
   static Future<Map<String, dynamic>?> obtenerDesafioActual() async {
     try {
       final headers = await _getAuthHeaders();
+      print('🔐 Headers: $headers');
       final url = ApiConfig.getUrl('/desafios/obtenerDesafioActual');
 
       final response = await http
@@ -130,36 +131,103 @@ class DesafioService {
     }
   }
 
-  static Future<Map<String, dynamic>?> actualizarSerie({
-    required int idDesafioRealizado,
-    required int idRutinaEjercicio,
-  }) async {
+  /// Registra el inicio de la rutina en el endpoint POST /rutina-realizada/RegistrarProgreso
+static Future<Map<String, dynamic>?> registrarInicioRutina({
+  required int idRutina,
+  required int idDesafioRealizado,
+}) async {
+  try {
+    final headers = await _getAuthHeaders();
+    final body = {
+      'idRutina': idRutina,
+      'idDesafioRealizado': idDesafioRealizado,
+    };
+    final url = ApiConfig.getUrl('/rutina-realizada/RegistrarProgreso');
+    print('POST $url');
+    print('Body: $body');
+
+    final response = await http
+        .post(
+          Uri.parse(url),
+          headers: headers,
+          body: json.encode(body),
+        )
+        .timeout(const Duration(seconds: 60));
+
+    print('Status: ${response.statusCode}');
+    print('Response: ${response.body}');
+
+    // Aceptar 200 o 201
+    if (response.statusCode == 200 || response.statusCode == 201) {
+      return json.decode(response.body) as Map<String, dynamic>;
+    } else {
+      print('Error registrarInicioRutina: ${response.statusCode}');
+      return null;
+    }
+  } catch (e) {
+    print('Error en registrarInicioRutina: $e');
+    return null;
+  }
+}
+
+static Future<Map<String, dynamic>?> actualizarSerie({
+  required int idDesafioRealizado,
+  required int idRutinaEjercicio,
+}) async {
+  // 1) Logs
+  print(' Validando IDs: DesafioRealizado=$idDesafioRealizado, RutinaEjercicio=$idRutinaEjercicio');
+
+  // 2) Request
+  final headers = await _getAuthHeaders();
+  final url = Uri.parse('${ApiConfig.baseUrl}/rutina-realizada/serie');
+
+  final requestBody = jsonEncode({
+    "idDesafioRealizado": idDesafioRealizado,
+    "idRutinaEjercicio": idRutinaEjercicio,
+  });
+
+  final response = await http.patch(url, headers: headers, body: requestBody);
+
+  print('📡 PATCH → $url');
+  print('📦 Body: $requestBody');
+  print('📥 Status: ${response.statusCode}');
+  print('📥 Response: ${response.body}');
+
+  // 3) Respuesta esperada: {seriesRealizadas, seriesObjetivo, ejercicioCompletado, rutinaCompletada}
+  if (response.statusCode == 200) {
     try {
-      final headers = await _getAuthHeaders();
-      final requestBody = {
-        'idDesafioRealizado': idDesafioRealizado,
-        'idRutinaEjercicio': idRutinaEjercicio,
-      };
-
-      final url = ApiConfig.getUrl('/rutina-realizada/serie');
-
-      final response = await http
-          .post(
-            Uri.parse(url),
-            headers: headers,
-            body: json.encode(requestBody),
-          )
-          .timeout(const Duration(seconds: 60));
-
-      if (response.statusCode == 200) {
-        return json.decode(response.body);
-      } else {
-        print('Error actualizarSerie: ${response.statusCode}');
-        return null;
-      }
+      final data = jsonDecode(response.body) as Map<String, dynamic>;
+      return data;
     } catch (e) {
-      print('Error al actualizar serie: $e');
+      print('⚠️ Error parseando respuesta: $e');
       return null;
     }
   }
+
+  return null;
+}
+
+// lib/services/desafio_service.dart
+static Future<List<Map<String, dynamic>>> obtenerEjerciciosRealizados({
+  required int idDesafioRealizado,
+}) async {
+  final headers = await _getAuthHeaders();
+
+  // ⚠️ AJUSTA ESTA RUTA A LA REAL DE TU API
+  final url = ApiConfig.getUrl('/rutina-realizada/detalle/$idDesafioRealizado');
+  final res = await http.get(Uri.parse(url), headers: headers);
+
+  if (res.statusCode != 200) return [];
+
+  final data = jsonDecode(res.body);
+  // Puede venir como {ejercicios: [...] } o directamente como lista [...]
+  final lista = (data is List)
+      ? data
+      : (data['ejercicios'] ?? data['items'] ?? []) as List<dynamic>;
+
+  // Esperamos algo tipo: { idRutinaEjercicio, idEjercicio, ... }
+  return lista.cast<Map<String, dynamic>>();
+}
+
+
 }

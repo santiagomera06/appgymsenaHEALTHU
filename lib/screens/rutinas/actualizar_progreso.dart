@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:lottie/lottie.dart';
-import 'package:healthu/services/desafio_service.dart';
+
 
 class ActualizarProgreso extends StatefulWidget {
   final String desafioId;

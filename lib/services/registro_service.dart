@@ -8,7 +8,7 @@ class RegistroService {
     File? imagen,
   ) async {
     try {
-      var uri = Uri.parse('http://54.82.114.190:8080/auth/register'); // Cambia por tu URL real
+      var uri = Uri.parse('http://54.82.114.190:8080/auth/register'); 
       var request = http.MultipartRequest('POST', uri);
 
       // Adjuntamos campos del formulario

@@ -1,470 +1,358 @@
-import 'package:flutter/material.dart';
-import 'package:healthu/services/desafio_service.dart';
-import 'package:healthu/widgets/progreso_desafios_card.dart';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:healthu/models/crear_rutina_model.dart' as crear_rutina;
+import 'package:healthu/models/rutina_model.dart' as rutina_model;
 
-class EjerciciosRutinaScreen extends StatefulWidget {
-  final int idDesafio;
-  final int idRutina;
-  final String nombreRutina;
-  final int? registrosCreados;
+const int timeoutSeconds = 10;
 
-  const EjerciciosRutinaScreen({
-    super.key,
-    required this.idDesafio,
-    required this.idRutina,
-    required this.nombreRutina,
-    this.registrosCreados,
-  });
+class RutinaService {
+  static const String baseUrl = 'http://54.227.38.102:8080';
 
-  @override
-  State<EjerciciosRutinaScreen> createState() => _EjerciciosRutinaScreenState();
-}
-
-class _EjerciciosRutinaScreenState extends State<EjerciciosRutinaScreen> {
-  bool _rutinaIniciada = false;
-  bool _cargando = false;
-  int _ejercicioActual = 0;
-  int _serieActual = 1;
-  Map<String, dynamic>? _ultimoProgreso;
-
-  // Datos simulados de ejercicios (reemplazar con datos reales de la API)
-  final List<Map<String, dynamic>> _ejercicios = [
-    {
-      'id': 1,
-      'nombre': 'Flexiones',
-      'series': 3,
-      'repeticiones': 15,
-      'descripcion': 'Flexiones de brazos clásicas',
-    },
-    {
-      'id': 2,
-      'nombre': 'Sentadillas',
-      'series': 3,
-      'repeticiones': 20,
-      'descripcion': 'Sentadillas profundas',
-    },
-    {
-      'id': 3,
-      'nombre': 'Plancha',
-      'series': 3,
-      'repeticiones': 30, // segundos
-      'descripcion': 'Mantener posición de plancha',
-    },
-  ];
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(widget.nombreRutina),
-        backgroundColor: Colors.orange,
-        foregroundColor: Colors.white,
-      ),
-      body:
-          _cargando
-              ? const Center(child: CircularProgressIndicator())
-              : !_rutinaIniciada
-              ? _buildPantallaInicial()
-              : _buildPantallaEjercicios(),
-    );
-  }
-
-  Widget _buildPantallaInicial() {
-    return Padding(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          const Icon(
-            Icons.play_circle_outline,
-            size: 100,
-            color: Colors.orange,
-          ),
-          const SizedBox(height: 24),
-          Text(
-            widget.nombreRutina,
-            style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 16),
-          Text(
-            'Ejercicios: ${_ejercicios.length}',
-            style: const TextStyle(fontSize: 18),
-          ),
-          if (widget.registrosCreados != null) ...[
-            const SizedBox(height: 8),
-            Text(
-              'Registros creados: ${widget.registrosCreados}',
-              style: const TextStyle(
-                fontSize: 16,
-                color: Colors.green,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ],
-          const SizedBox(height: 32),
-          SizedBox(
-            width: double.infinity,
-            height: 50,
-            child: ElevatedButton(
-              onPressed: _iniciarEjercicios,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.orange,
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(25),
-                ),
-              ),
-              child: const Text(
-                'Iniciar',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildPantallaEjercicios() {
-    final ejercicio = _ejercicios[_ejercicioActual];
-    final totalSeries = ejercicio['series'] as int;
-
-    return Padding(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        children: [
-          // Progreso
-          LinearProgressIndicator(
-            value: (_ejercicioActual + 1) / _ejercicios.length,
-            backgroundColor: Colors.grey[300],
-            valueColor: const AlwaysStoppedAnimation<Color>(Colors.orange),
-          ),
-          const SizedBox(height: 16),
-
-          // Información del ejercicio
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    ejercicio['nombre'],
-                    style: const TextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    ejercicio['descripcion'],
-                    style: const TextStyle(fontSize: 16, color: Colors.grey),
-                  ),
-                  const SizedBox(height: 16),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceAround,
-                    children: [
-                      Column(
-                        children: [
-                          const Text(
-                            'Serie',
-                            style: TextStyle(color: Colors.grey),
-                          ),
-                          Text(
-                            '$_serieActual / $totalSeries',
-                            style: const TextStyle(
-                              fontSize: 20,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ],
-                      ),
-                      Column(
-                        children: [
-                          const Text(
-                            'Repeticiones',
-                            style: TextStyle(color: Colors.grey),
-                          ),
-                          Text(
-                            '${ejercicio['repeticiones']}',
-                            style: const TextStyle(
-                              fontSize: 20,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          ),
-
-          const Spacer(),
-
-          // Información del último progreso
-          if (_ultimoProgreso != null) ...[
-            Card(
-              color: Colors.green[50],
-              child: Padding(
-                padding: const EdgeInsets.all(12),
-                child: Column(
-                  children: [
-                    Text(
-                      'Series: ${_ultimoProgreso!['seriesRealizadas']}/${_ultimoProgreso!['seriesObjetivo']}',
-                      style: const TextStyle(fontWeight: FontWeight.w500),
-                    ),
-                    if (_ultimoProgreso!['ejercicioCompletado'] == true)
-                      const Text(
-                        '¡Ejercicio completado!',
-                        style: TextStyle(
-                          color: Colors.green,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    if (_ultimoProgreso!['rutinaCompletada'] == true)
-                      const Text(
-                        '¡Rutina completada!',
-                        style: TextStyle(
-                          color: Colors.green,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                  ],
-                ),
-              ),
-            ),
-            const SizedBox(height: 16),
-          ],
-
-          // Botón de acción
-          SizedBox(
-            width: double.infinity,
-            height: 50,
-            child: ElevatedButton(
-              onPressed: _cargando ? null : _siguienteSerie,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.orange,
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(25),
-                ),
-              ),
-              child:
-                  _cargando
-                      ? const SizedBox(
-                        width: 20,
-                        height: 20,
-                        child: CircularProgressIndicator(
-                          color: Colors.white,
-                          strokeWidth: 2,
-                        ),
-                      )
-                      : Text(
-                        _ultimoProgreso?['rutinaCompletada'] == true
-                            ? 'Finalizar Rutina'
-                            : 'Siguiente Serie',
-                        style: const TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Future<void> _iniciarEjercicios() async {
-    setState(() => _cargando = true);
-
+  // ---------- Helpers ----------
+  static Future<String?> _obtenerToken() async {
     try {
-      final desafioActual = await DesafioService.obtenerDesafioActual();
+      final prefs = await SharedPreferences.getInstance();
+      return prefs.getString('token');
+    } catch (e) {
+      print('Error al obtener token: $e');
+      return null;
+    }
+  }
 
-      Map<String, dynamic>? patchResponse;
+  static Future<Map<String, String>> _headers({bool auth = true}) async {
+    final h = <String, String>{
+      'Accept': 'application/json',
+      'Content-Type': 'application/json',
+    };
+    if (auth) {
+      final t = await _obtenerToken();
+      if (t != null) h['Authorization'] = 'Bearer $t';
+    }
+    return h;
+  }
 
-      if (desafioActual != null) {
-        var idParaPatch = widget.idDesafio;
-        if (desafioActual['idDesafioRealiado'] != null) {
-          idParaPatch = desafioActual['idDesafioRealiado'];
-          print('USANDO idDesafioRealiado: $idParaPatch');
-        } else {
-          print('USANDO widget.idDesafio (fallback): $idParaPatch');
-        }
+  // ---------- Iniciar rutina (si lo sigues usando aquí) ----------
+  static Future<int?> iniciarRutina(int idRutina) async {
+    try {
+      final response = await http
+          .post(
+            Uri.parse('$baseUrl/rutina-realizada/iniciar'),
+            headers: await _headers(),
+            body: json.encode({'idRutina': idRutina}),
+          )
+          .timeout(const Duration(seconds: timeoutSeconds));
 
-        patchResponse = await DesafioService.iniciarRutinaDesafio(idParaPatch);
-      } else {
-        print('No se pudo obtener desafío actual, usando widget.idDesafio');
-
-        patchResponse = await DesafioService.iniciarRutinaDesafio(
-          widget.idDesafio,
-        );
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        return data['idDesafioRealizado'] as int?;
       }
-
-      final rutinaIniciada = patchResponse != null;
-
-      if (rutinaIniciada) {
-        setState(() {
-          _rutinaIniciada = true;
-          _cargando = false;
-        });
-
-        print('Intentando refrescar datos del dashboard...');
-        try {
-          await Future.delayed(const Duration(milliseconds: 800));
-          await DesafioService.obtenerDesafioActual();
-          await ProgresoDesafiosCard.refrescarGlobal();
-        } catch (reloadError) {
-          print(' Error al recargar datos del dashboard: $reloadError');
-        }
-
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('¡Rutina iniciada! Comenzando ejercicios...'),
-              backgroundColor: Colors.green,
-              duration: Duration(seconds: 2),
-            ),
-          );
-        }
-      } else {
-        throw Exception(
-          'El servidor no pudo iniciar la rutina. Verifica que el desafío exista y esté activo.',
-        );
-      }
+      return null;
     } catch (e) {
       print('Error al iniciar rutina: $e');
-
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error al iniciar rutina: $e'),
-            backgroundColor: Colors.red,
-            duration: const Duration(seconds: 4),
-            action: SnackBarAction(
-              label: 'Reintentar',
-              textColor: Colors.white,
-              onPressed: _iniciarEjercicios,
-            ),
-          ),
-        );
-      }
-
-      setState(() => _cargando = false);
+      return null;
     }
   }
 
-  Future<void> _siguienteSerie() async {
-    if (_ultimoProgreso?['rutinaCompletada'] == true) {
-      await _completarRutina();
-      return;
-    }
-
-    setState(() => _cargando = true);
-
+  // ---------- PATCH /rutina-realizada/serie ----------
+  static Future<bool> registrarSerieCompletada({
+    required int idDesafioRealizado,
+    required int idRutinaEjercicio,
+  }) async {
     try {
-      // Llamar al endpoint de actualizar serie
-      final progreso = await DesafioService.actualizarSerie(
-        idDesafioRealizado: widget.idDesafio,
-        idRutinaEjercicio: _ejercicios[_ejercicioActual]['id'],
-      );
+      final url = '$baseUrl/rutina-realizada/serie';
+      final body = {
+        'idDesafioRealizado': idDesafioRealizado,
+        'idRutinaEjercicio': idRutinaEjercicio,
+      };
 
-      if (progreso != null) {
-        setState(() {
-          _ultimoProgreso = progreso;
+      print('📡 PATCH → $url');
+      print('📦 Body: $body');
 
-          // Si el ejercicio está completado, pasar al siguiente
-          if (progreso['ejercicioCompletado'] == true &&
-              _ejercicioActual < _ejercicios.length - 1) {
-            _ejercicioActual++;
-            _serieActual = 1;
-          } else if (progreso['ejercicioCompletado'] != true) {
-            // Incrementar serie actual
-            _serieActual++;
-          }
-        });
+      final response = await http
+          .patch(
+            Uri.parse(url),
+            headers: await _headers(),
+            body: json.encode(body),
+          )
+          .timeout(const Duration(seconds: timeoutSeconds));
 
-        // Mostrar mensaje de progreso
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(
-                progreso['rutinaCompletada'] == true
-                    ? '¡Rutina completada!'
-                    : progreso['ejercicioCompletado'] == true
-                    ? '¡Ejercicio completado!'
-                    : 'Serie completada: ${progreso['seriesRealizadas']}/${progreso['seriesObjetivo']}',
-              ),
-              backgroundColor: Colors.green,
-            ),
-          );
-        }
+      print('📥 Status: ${response.statusCode}');
+      print('📥 Response: ${response.body}');
 
-        if (progreso['rutinaCompletada'] == true) {
-          await _completarRutina();
-        }
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        // Puedes cambiar esta condición si tu backend devuelve otra cosa
+        return data['success'] == true ||
+               data['ejercicioCompletado'] == true ||
+               data['rutinaCompletada'] == true;
       }
+      return false;
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error al actualizar serie: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    } finally {
-      setState(() => _cargando = false);
+      print('❌ Error en registrarSerieCompletada: $e');
+      return false;
     }
   }
 
-  Future<void> _completarRutina() async {
+  // ---------- POST /rutina-realizada/RegistrarProgreso (opcional) ----------
+  static Future<bool> registrarProgresoEjercicio({
+    required int idRutina,              // id de la rutina
+    required int idDesafioRealizado,    // id del desafío realizado
+  }) async {
     try {
-      print(
-        '🎉 Completando rutina ${widget.idRutina} del desafío ${widget.idDesafio}...',
-      );
+      final response = await http
+          .post(
+            Uri.parse('$baseUrl/rutina-realizada/RegistrarProgreso'),
+            headers: await _headers(),
+            body: json.encode({
+              'idRutina': idRutina,
+              'idDesafioRealizado': idDesafioRealizado,
+            }),
+          )
+          .timeout(const Duration(seconds: timeoutSeconds));
 
-      final progreso = await DesafioService.registrarProgreso(
-        idRutina: widget.idRutina,
-        idDesafioRealizado: widget.idDesafio,
-      );
-
-      if (progreso != null && progreso['success'] == true) {
-        print(' Progreso registrado exitosamente');
-
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('🎉 ¡Rutina completada y progreso guardado!'),
-              backgroundColor: Colors.green,
-              duration: Duration(seconds: 3),
-            ),
-          );
-
-          await Future.delayed(const Duration(seconds: 2));
-
-          Navigator.of(context).pop(true);
-        }
-      } else {
-        throw Exception('No se pudo registrar el progreso');
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        final data = json.decode(response.body);
+        return data['success'] == true;
       }
+      return false;
     } catch (e) {
-      print(' Error al completar rutina: $e');
-
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error al guardar progreso: $e'),
-            backgroundColor: Colors.red,
-            duration: const Duration(seconds: 3),
-          ),
-        );
-
-        Navigator.of(context).pop(false);
-      }
+      print('Error en registrarProgresoEjercicio: $e');
+      return false;
     }
   }
+
+  // ---------- GET /rutina/obtenerRutina/{id} ----------
+  static Future<rutina_model.RutinaDetalle> obtenerRutina(String id) async {
+    try {
+      final response = await http
+          .get(
+            Uri.parse('$baseUrl/rutina/obtenerRutina/$id'),
+            headers: await _headers(auth: false), // si este GET no requiere token
+          )
+          .timeout(const Duration(seconds: 5));
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body) as Map<String, dynamic>;
+        return _mapearRutinaDesdeApi(data);
+      }
+
+      // Fallback ligero por si algo falla
+      return _mockRutina;
+    } catch (e) {
+      print('Error al obtener rutina, usando mock: $e');
+      return _mockRutina;
+    }
+  }
+
+  // ---------- GET /rutina/obtenerRutinas ----------
+  static Future<List<rutina_model.RutinaDetalle>> obtenerRutinas() async {
+    try {
+      final response = await http
+          .get(
+            Uri.parse('$baseUrl/rutina/obtenerRutinas'),
+            headers: await _headers(auth: false),
+          )
+          .timeout(const Duration(seconds: 5));
+
+      if (response.statusCode == 200) {
+        final body = json.decode(response.body);
+        final List<dynamic> lista =
+            body is List ? body : (body['items'] ?? []) as List<dynamic>;
+        return lista
+            .map((item) => _mapearRutinaDesdeApi(item as Map<String, dynamic>))
+            .toList();
+      }
+
+      return [_mockRutina];
+    } catch (e) {
+      print('Error al obtener rutinas, usando mock: $e');
+      return [_mockRutina];
+    }
+  }
+
+  // ---------- POST /rutina/crear ----------
+  static Future<bool> crearRutina(crear_rutina.Rutina rutina) async {
+    try {
+      final response = await http
+          .post(
+            Uri.parse('$baseUrl/rutina/crear'),
+            headers: await _headers(),
+            body: json.encode({
+              'name': rutina.nombre,
+              'description': rutina.descripcion,
+              'imageUrl': rutina.fotoRutina,
+              'focus': rutina.enfoque,
+              'level': rutina.dificultad,
+              'practices': rutina.ejercicios.map((e) => {
+                    'id': e.idEjercicio,
+                    'repetition': e.series,
+                    'target': e.repeticion,
+                    'value': e.carga,
+                    'timeplacement': e.duracion,
+                  }).toList(),
+            }),
+          )
+          .timeout(const Duration(seconds: timeoutSeconds));
+
+      return response.statusCode == 201;
+    } catch (e) {
+      print('Error al crear rutina: $e');
+      return false;
+    }
+  }
+
+  // ---------- PUT /rutina/actualizar/{rutinaId} ----------
+  static Future<bool> actualizarRutina(
+    String rutinaId,
+    Map<String, dynamic> datosActualizados,
+  ) async {
+    try {
+      final response = await http
+          .put(
+            Uri.parse('$baseUrl/rutina/actualizar/$rutinaId'),
+            headers: await _headers(),
+            body: json.encode({
+              'idButton': rutinaId,
+              'practices': (datosActualizados['ejercicios'] as List<dynamic>?)
+                      ?.map((e) => {
+                            'id': e['id'],
+                            'completed': e['completed'],
+                            'time': e['time'],
+                          })
+                      .toList() ??
+                  [],
+              'completed': datosActualizados['completada'],
+            }),
+          )
+          .timeout(const Duration(seconds: 5));
+
+      return response.statusCode == 200;
+    } catch (e) {
+      print('Error al actualizar rutina: $e');
+      return false;
+    }
+  }
+
+  // ---------- Validación QR ----------
+  static Future<bool> validarQRInstructor({
+    required String rutinaId,
+    required String qrCode,
+  }) async {
+    try {
+      if (qrCode ==
+          'HEALTHU_VALIDACION_INSTRUCTOR|123e4567-e89b-12d3-a456-426614174000') {
+        return true;
+      }
+
+      final response = await http.post(
+        Uri.parse('$baseUrl/rutina/validarQR'),
+        headers: await _headers(auth: false),
+        body: json.encode({
+          'rutinaId': rutinaId,
+          'qrCode': qrCode,
+        }),
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        return data['valid'] == true;
+      }
+      return false;
+    } catch (e) {
+      print('Error en validación QR: $e');
+      return true; // Simula éxito en desarrollo
+    }
+  }
+
+  // ---------- Mapeos ----------
+  static rutina_model.RutinaDetalle _mapearRutinaDesdeApi(
+      Map<String, dynamic> data) {
+    // Soporta ambos esquemas (ES/EN)
+    final ejerciciosRaw =
+        (data['ejercicios'] ?? data['practices'] ?? []) as List<dynamic>;
+
+    return rutina_model.RutinaDetalle(
+      id: int.tryParse(
+              data['idRutina']?.toString() ??
+                  data['identifier']?.toString() ??
+                  data['id']?.toString() ??
+                  '0') ??
+          0,
+      nombre: data['nombre'] ?? data['name'] ?? 'Rutina sin nombre',
+      descripcion: data['descripcion'] ?? data['description'] ?? '',
+      imagenUrl: data['fotoRutina'] ??
+          data['imageUrl'] ??
+          '', // algunos endpoints usan fotoRutina
+      nivel: data['nivel'] ?? data['dificultad'] ?? data['level'] ?? 'Intermedio',
+      completada: data['completada'] ?? data['completed'] ?? false,
+      ejercicios: _mapearEjercicios(ejerciciosRaw),
+    );
+  }
+
+  static List<rutina_model.EjercicioRutina> _mapearEjercicios(
+      List<dynamic> items) {
+    return items.map((p) {
+      final m = p as Map<String, dynamic>;
+      return rutina_model.EjercicioRutina(
+        // id del ejercicio
+        id: int.tryParse(
+                m['idEjercicio']?.toString() ?? m['id']?.toString() ?? '0') ??
+            0,
+        nombre: m['nombre'] ?? m['name'] ?? 'Ejercicio sin nombre',
+        // series / repeticiones
+        series: m['series'] ?? m['repetition'] ?? 3,
+        repeticiones: m['repeticion'] ?? m['target'] ?? 10,
+        // carga/peso
+        pesoRecomendado: m['carga'] != null
+            ? double.tryParse(m['carga'].toString())
+            : (m['value'] != null
+                ? double.tryParse(m['value'].toString())
+                : null),
+        descripcion: m['descripcion'] ?? m['description'] ?? '',
+        imagenUrl: m['imagenUrl'] ?? m['imageUrl'] ?? '',
+        duracionEstimada: m['duracion'] ?? m['timeplacement'] ?? 60,
+        completado: m['completado'] ?? m['completed'] ?? false,
+        tiempoRealizado: m['tiempoRealizado'] ?? m['time'],
+        // 🎯 clave: viene desde el GET /rutina/obtenerRutina/{id}
+        idRutinaEjercicio: int.tryParse(
+              m['idRutinaEjercicio']?.toString() ??
+                  m['rutinaEjercicioId']?.toString() ??
+                  '',
+            ) ??
+            null,
+      );
+    }).toList();
+  }
+
+  // ---------- Mock para fallback ----------
+  static final _mockRutina = rutina_model.RutinaDetalle(
+    id: 9999,
+    nombre: 'Rutina de prueba',
+    descripcion: 'Rutina mock para desarrollo',
+    imagenUrl: '',
+    nivel: 'Principiante',
+    completada: false,
+    ejercicios: [
+      rutina_model.EjercicioRutina(
+        id: 101,
+        nombre: 'Sentadillas',
+        series: 3,
+        repeticiones: 12,
+        pesoRecomendado: 5.0,
+        descripcion: 'Ejercicio básico para piernas',
+        imagenUrl: '',
+        duracionEstimada: 3,
+      ),
+      rutina_model.EjercicioRutina(
+        id: 102,
+        nombre: 'Flexiones',
+        series: 3,
+        repeticiones: 10,
+        descripcion: 'Ejercicio para brazos y pecho',
+        imagenUrl: '',
+        duracionEstimada: 3,
+      ),
+    ],
+  );
 }

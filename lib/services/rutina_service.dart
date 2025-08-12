@@ -4,11 +4,14 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:healthu/models/crear_rutina_model.dart' as crear_rutina;
 import 'package:healthu/models/rutina_model.dart' as rutina_model;
 
+
 const int timeoutSeconds = 10;
 
 class RutinaService {
   static const String baseUrl = 'http://54.227.38.102:8080';
+    
 
+    
   static final _mockRutina = rutina_model.RutinaDetalle(
     id: 9999,
     nombre: 'Rutina de prueba',
@@ -76,39 +79,59 @@ class RutinaService {
     }
   }
 
-  static Future<bool> registrarSerieCompletada({
-    required int idRutina,
-    required int idEjercicio,
-  }) async {
-    try {
-      final token = await _obtenerToken();
-      if (token == null) return false;
-
-      final response = await http
-          .patch(
-            Uri.parse('$baseUrl/rutina-realizada/serie'),
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': 'Bearer $token',
-            },
-            body: json.encode({
-              'idDesafioRealizado': idRutina,
-              'idRutinaEjercicio': idEjercicio,
-            }),
-          )
-          .timeout(const Duration(seconds: timeoutSeconds));
-
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        return data['ejercicioCompletado'] == true ||
-            data['rutinaCompletada'] == true;
-      }
-      return false;
-    } catch (e) {
-      print('Error en registrarSerieCompletada: $e');
+ static Future<bool> registrarSerieCompletada({
+  required int idRutina,
+  required int idEjercicio,
+}) async {
+  try {
+    if (idRutina == null) {
+      print('❌ idDesafioRealizado (idRutina) aún es null, no se puede continuar.');
       return false;
     }
+
+    final token = await _obtenerToken();
+    if (token == null) {
+      print('❌ Token no encontrado');
+      return false;
+    }
+
+    final url = '$baseUrl/rutina-realizada/serie';
+    final body = {
+      'idDesafioRealizado': idRutina,
+      'idRutinaEjercicio': idEjercicio,
+    };
+
+    print('📡 PATCH → $url');
+    print('📦 Body: $body');
+
+    final response = await http
+        .patch(
+          Uri.parse(url),
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer $token',
+          },
+          body: json.encode(body),
+        )
+        .timeout(const Duration(seconds: timeoutSeconds));
+
+    print('📥 Status: ${response.statusCode}');
+    print('📥 Response: ${response.body}');
+
+    if (response.statusCode == 200) {
+      final data = json.decode(response.body);
+      return data['ejercicioCompletado'] == true ||
+          data['rutinaCompletada'] == true;
+    } else {
+      print('⚠️ Falló la petición con status ${response.statusCode}');
+      return false;
+    }
+  } catch (e) {
+    print('❌ Error en registrarSerieCompletada: $e');
+    return false;
   }
+}
+
 
   static Future<bool> registrarProgresoEjercicio({
     required int idRutina,
@@ -274,32 +297,55 @@ class RutinaService {
     }
   }
 
-  static rutina_model.RutinaDetalle _mapearRutinaDesdeApi(Map<String, dynamic> data) {
-    return rutina_model.RutinaDetalle(
-      id: int.tryParse(data['identifier']?.toString() ?? data['id']?.toString() ?? '0') ?? 0,
-      nombre: data['name'] ?? 'Rutina sin nombre',
-      descripcion: data['description'] ?? '',
-      imagenUrl: data['imageUrl'] ?? '',
-      nivel: data['level'] ?? 'Intermedio',
-      completada: data['completed'] ?? false,
-      ejercicios: _mapearEjercicios(data['practices'] ?? []),
-    );
+static rutina_model.RutinaDetalle _mapearRutinaDesdeApi(Map<String, dynamic> data) {
+  final items = (data['practices'] ?? data['ejercicios'] ?? []) as List<dynamic>;
+
+  return rutina_model.RutinaDetalle(
+    id: int.tryParse(data['identifier']?.toString() ?? data['id']?.toString() ?? '0') ?? 0,
+    nombre: data['name'] ?? data['nombre'] ?? 'Rutina sin nombre',
+    descripcion: data['description'] ?? data['descripcion'] ?? '',
+    imagenUrl: data['imageUrl'] ?? data['fotoRutina'] ?? data['imagenUrl'] ?? '',
+    nivel: data['level'] ?? data['dificultad'] ?? 'Intermedio',
+    completada: (data['completed'] ?? data['completada'] ?? false) as bool,
+    ejercicios: _mapearEjercicios(items),
+  );
+}
+
+static List<rutina_model.EjercicioRutina> _mapearEjercicios(List<dynamic> items) {
+  int _int(dynamic v, [int def = 0]) {
+    if (v == null) return def;
+    if (v is int) return v;
+    return int.tryParse(v.toString()) ?? def;
   }
 
-  static List<rutina_model.EjercicioRutina> _mapearEjercicios(List<dynamic> practices) {
-    return practices.map((practice) {
-      return rutina_model.EjercicioRutina(
-        id: int.tryParse(practice['id']?.toString() ?? '0') ?? 0,
-        nombre: practice['name'] ?? 'Ejercicio sin nombre',
-        series: practice['repetition'] ?? 3,
-        repeticiones: practice['target'] ?? 10,
-        pesoRecomendado: practice['value'] != null ? double.tryParse(practice['value'].toString()) : null,
-        descripcion: practice['description'] ?? '',
-        imagenUrl: practice['imageUrl'] ?? '',
-        duracionEstimada: practice['timeplacement'] ?? 60,
-        completado: practice['completed'] ?? false,
-        tiempoRealizado: practice['time'],
-      );
-    }).toList();
+  double? _doubleN(dynamic v) {
+    if (v == null) return null;
+    if (v is num) return v.toDouble();
+    return double.tryParse(v.toString());
   }
+
+  return items.map((p) {
+    final m = p as Map<String, dynamic>;
+
+    final id = _int(m['id'] ?? m['idEjercicio']);
+    final idRutinaEjercicio = (m.containsKey('idRutinaEjercicio') || m.containsKey('rutinaEjercicioId') || m.containsKey('idRelacion'))
+        ? _int(m['idRutinaEjercicio'] ?? m['rutinaEjercicioId'] ?? m['idRelacion'])
+        : null;
+
+    return rutina_model.EjercicioRutina(
+      id: id,
+      nombre: m['name'] ?? m['nombre'] ?? 'Ejercicio sin nombre',
+      series: _int(m['repetition'] ?? m['series'] ?? 3, 3),
+      repeticiones: _int(m['target'] ?? m['repeticion'] ?? m['repeticiones'] ?? 10, 10),
+      pesoRecomendado: _doubleN(m['value'] ?? m['carga'] ?? m['pesoRecomendado']),
+      descripcion: m['description'] ?? m['descripcion'] ?? '',
+      imagenUrl: m['imageUrl'] ?? m['imagenUrl'] ?? '',
+      duracionEstimada: _int(m['timeplacement'] ?? m['duracion'] ?? m['duracionEstimada'] ?? 60, 60),
+      completado: (m['completed'] ?? m['completado'] ?? false) as bool,
+      tiempoRealizado: (m['time'] ?? m['tiempoRealizado']) == null ? null : _int(m['time'] ?? m['tiempoRealizado']),
+      idRutinaEjercicio: idRutinaEjercicio,
+    );
+  }).toList();
+}
+
 }
