@@ -38,7 +38,7 @@ class PulseService {
     final samples = <_Sample>[];
     int count = 0;
 
-    print('⏳ 1 s de estabilización…');
+    print(' 1 s de estabilización…');
     await Future.delayed(const Duration(seconds: 1));
 
     try {
@@ -47,7 +47,7 @@ class PulseService {
         samples.add(_Sample(DateTime.now(), luma));
         print('Sample #${++count}: ${samples.last}');
       });
-      print('🎥 Stream iniciado…');
+      print(' Stream iniciado…');
     } catch (e) {
       print(' Error al iniciar stream: $e');
       return null;
