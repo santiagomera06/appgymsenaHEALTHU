@@ -1,12 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
-// ignore: unused_import
-import 'package:lottie/lottie.dart';
 import 'package:healthu/services/rutina_service.dart';
-import 'package:healthu/screens/rutinas/actualizar_progreso.dart'; // Asegúrate de importar esta pantalla
 
 class ValidarInstructorScreen extends StatefulWidget {
-  final String rutinaId;
+  // ignore: unused_field
+  final String rutinaId; // se mantiene para no romper navegaciones existentes
 
   const ValidarInstructorScreen({
     super.key,
@@ -18,7 +16,7 @@ class ValidarInstructorScreen extends StatefulWidget {
 }
 
 class _ValidarInstructorScreenState extends State<ValidarInstructorScreen> {
-  MobileScannerController cameraController = MobileScannerController();
+  final MobileScannerController cameraController = MobileScannerController();
   bool _isValidating = false;
   bool _qrScanned = false;
 
@@ -31,58 +29,64 @@ class _ValidarInstructorScreenState extends State<ValidarInstructorScreen> {
   Future<void> _validateQRCode(String qrData) async {
     if (_isValidating || _qrScanned) return;
 
-    setState(() => _isValidating = true);
+    setState(() {
+      _isValidating = true;
+      _qrScanned = true; // evita múltiples lecturas
+    });
 
     try {
-      final isValid = await RutinaService.validarQRInstructor(
-        rutinaId: widget.rutinaId,
-        qrCode: qrData,
+      await cameraController.stop(); // detén la cámara mientras validas
+
+      // ✅ Nuevo servicio: solo mandamos el código QR (sin bearer)
+      final ok = await RutinaService.validarQRInstructor(
+        qrCode: qrData.trim(),
       );
 
-      if (isValid) {
-        setState(() => _qrScanned = true);
+      if (!mounted) return;
 
-        // TODO: Reemplazar estos valores con datos reales
-        const String desafioId = 'id_del_desafio_actual';
-        const String userId = 'id_del_usuario';
-        const int puntosGanados = 100;
-
-        // Mostrar pantalla de progreso
-        // ignore: use_build_context_synchronously
-        await Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (_) => ActualizarProgreso(
-              desafioId: desafioId,
-              userId: userId,
-              puntosGanados: puntosGanados,
+      if (ok) {
+        // Diálogo de éxito
+        await showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (_) => AlertDialog(
+            title: const Text('Validación exitosa'),
+            content: const Text(
+              'La rutina fue validada por el instructor. ¡Buen trabajo!',
             ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: const Text('Aceptar'),
+              ),
+            ],
           ),
         );
 
-        // ignore: use_build_context_synchronously
-        Navigator.pop(context, true); // Retornar éxito
+        // Salir al inicio (ajusta si prefieres otra pantalla)
+        if (!mounted) return;
+        Navigator.popUntil(context, (route) => route.isFirst);
       } else {
-        // ignore: use_build_context_synchronously
+        // Reintento
+        setState(() => _qrScanned = false);
+        await cameraController.start();
+        if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Código QR no válido'),
+            content: Text('Código QR no válido. Intenta nuevamente.'),
             backgroundColor: Colors.red,
           ),
         );
       }
     } catch (e) {
-      // ignore: use_build_context_synchronously
+      setState(() => _qrScanned = false);
+      await cameraController.start();
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error: $e'),
-          backgroundColor: Colors.red,
-        ),
+        SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
       );
     } finally {
-      if (mounted) {
-        setState(() => _isValidating = false);
-      }
+      if (mounted) setState(() => _isValidating = false);
     }
   }
 
@@ -128,10 +132,11 @@ class _ValidarInstructorScreenState extends State<ValidarInstructorScreen> {
           MobileScanner(
             controller: cameraController,
             onDetect: (capture) {
-              final barcodes = capture.barcodes;
-              for (final barcode in barcodes) {
-                if (barcode.rawValue != null) {
-                  _validateQRCode(barcode.rawValue!);
+              for (final b in capture.barcodes) {
+                final raw = b.rawValue;
+                if (raw != null) {
+                  debugPrint('QR leído: $raw');
+                  _validateQRCode(raw);
                   break;
                 }
               }
@@ -149,11 +154,11 @@ class _ValidarInstructorScreenState extends State<ValidarInstructorScreen> {
             right: 0,
             child: Container(
               padding: const EdgeInsets.all(16),
+              margin: const EdgeInsets.symmetric(horizontal: 20),
               decoration: BoxDecoration(
                 color: Colors.black.withOpacity(0.5),
                 borderRadius: BorderRadius.circular(8),
               ),
-              margin: const EdgeInsets.symmetric(horizontal: 20),
               child: const Text(
                 'Escanea el código QR del instructor',
                 textAlign: TextAlign.center,

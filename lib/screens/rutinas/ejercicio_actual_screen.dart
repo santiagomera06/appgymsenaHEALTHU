@@ -21,7 +21,7 @@
   }
 
   class _EjercicioActualScreenState extends State<EjercicioActualScreen> {
-    late List<int> _seriesHechas; // contador local por ejercicio
+    late List<int> _seriesHechas; 
 
     late bool _ejercicioCompletado;
     final _timerKey = GlobalKey<TemporizadorWidgetState>();
@@ -51,7 +51,7 @@ Future<void> _siguienteEjercicio() async {
   if (_isUpdating || _puedeAvanzar != true) return;
   setState(() {
     _isUpdating = true;
-    _puedeAvanzar = false; // el usuario debe correr otra vez el temporizador para la próxima serie
+    _puedeAvanzar = false; 
   });
 
   try {
@@ -59,7 +59,7 @@ Future<void> _siguienteEjercicio() async {
     final ej = widget.rutina.ejercicios[idx];
     final objetivo = (ej.series <= 0) ? 1 : ej.series;
 
-    final int? idRutinaEjercicio = ej.idRutinaEjercicio; // DEBE venir hidratado
+    final int? idRutinaEjercicio = ej.idRutinaEjercicio; 
     if (idRutinaEjercicio == null) {
       _mostrarErrorSnackbar(
         'No se encontró idRutinaEjercicio para este ejercicio. '
@@ -68,21 +68,17 @@ Future<void> _siguienteEjercicio() async {
       return;
     }
 
-    // Llamamos al backend (pero NO usamos su bandera para decidir si avanzar)
     await DesafioService.actualizarSerie(
       idDesafioRealizado: widget.idDesafioRealizado,
       idRutinaEjercicio: idRutinaEjercicio,
     );
-
-    // —— REGLA LOCAL: sumamos UNA serie al ejercicio actual
     final nuevasHechas = (_seriesHechas[idx] + 1).clamp(0, objetivo);
-
     setState(() {
       _seriesHechas[idx] = nuevasHechas;
       _ejercicioCompletado = nuevasHechas >= objetivo;
     });
 
-    // ¿Aún faltan series? → NO AVANZA DE EJERCICIO
+    // si ¿Aún faltan series?  NO AVANZA DE EJERCICIO
     if (!_ejercicioCompletado) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -92,7 +88,7 @@ Future<void> _siguienteEjercicio() async {
           duration: const Duration(seconds: 2),
         ),
       );
-      _timerKey.currentState?.reset();   // no lo inicies; el usuario decide
+      _timerKey.currentState?.reset();   
       return;
     }
 
@@ -114,7 +110,7 @@ Future<void> _siguienteEjercicio() async {
 
     final bool haySiguiente = idx < total - 1;
     if (haySiguiente) {
-      _timerKey.currentState?.reset(); // limpio antes de ir al siguiente
+      _timerKey.currentState?.reset(); 
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(
@@ -126,7 +122,7 @@ Future<void> _siguienteEjercicio() async {
         ),
       );
     } else {
-      // Último ejercicio → mostrar diálogo y luego navegar a ValidarInstructorScreen
+     
       await _mostrarDialogoCompletado(widget.rutina);
       if (!mounted) return;
       _timerKey.currentState?.reset();
@@ -265,13 +261,13 @@ Text('Progreso: $hechas/$objetivo series', style: const TextStyle(fontSize: 16))
                 Text(_ejercicio.descripcion, style: const TextStyle(fontSize: 16)),
                 const SizedBox(height: 24),
               ],
-  TemporizadorWidget(
-  key: _timerKey,
-  segundos: 3, // o lo que toque
-  onComplete: () {
-    setState(() { _puedeAvanzar = true; });
-  },
-),
+            TemporizadorWidget(
+            key: _timerKey,
+            segundos: _ejercicio.duracionEstimada,
+            onComplete: () {
+             setState(() { _puedeAvanzar = true; });
+           },
+         ),
 
             ],
           ),

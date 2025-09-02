@@ -39,33 +39,34 @@ class DesafioService {
     return headers;
   }
 
- static Future<Map<String, dynamic>?> obtenerDesafioActual() async {
-  try {
-    final headers = await _getAuthHeaders();
-    print('🔐 Headers: $headers');
-    final url = ApiConfig.getUrl('/desafios/obtenerDesafioActual');
+  static Future<Map<String, dynamic>?> obtenerDesafioActual() async {
+    try {
+      final headers = await _getAuthHeaders();
+      print(' Headers: $headers');
+      final url = ApiConfig.getUrl('/desafios/obtenerDesafioActual');
 
-    final response = await http
-        .get(Uri.parse(url), headers: headers)
-        .timeout(const Duration(seconds: 60));
+      final response = await http
+          .get(Uri.parse(url), headers: headers)
+          .timeout(const Duration(seconds: 60));
 
-    print('📥 Status code: ${response.statusCode}'); // 👈 NUEVO
+      print(' Status code: ${response.statusCode}'); // 👈 NUEVO
 
-    if (response.statusCode == 200) {
-      print('📦 Body crudo: ${response.body}');
-      final data = json.decode(response.body);
-      print('📥 Respuesta obtenerDesafioActual: $data');
-      return data;
-    } else {
-      print('❌ Error obtenerDesafioActual: ${response.statusCode}');
-      print('❌ Body de error: ${response.body}');
+      if (response.statusCode == 200) {
+        print(' Body crudo: ${response.body}');
+        final data = json.decode(response.body);
+        print(' Respuesta obtenerDesafioActual: $data');
+        return data;
+      } else {
+        print(' Error obtenerDesafioActual: ${response.statusCode}');
+        print(' Body de error: ${response.body}');
+        return null;
+      }
+    } catch (e) {
+      print(' Error al obtener desafío actual: $e');
       return null;
     }
-  } catch (e) {
-    print('🚨 Error al obtener desafío actual: $e');
-    return null;
   }
-}
+
   static Future<bool> iniciarRutinaDesafio(int idDesafio) async {
     try {
       final headers = await _getAuthHeaders();
@@ -134,34 +135,33 @@ class DesafioService {
     }
   }
 
-static Future<Map<String, dynamic>?> actualizarSerie({
-  required int idDesafioRealizado,
-  required int idRutinaEjercicio,
-}) async {
-  final headers = await _getAuthHeaders();
-  final url = Uri.parse('${ApiConfig.baseUrl}/rutina-realizada/serie');
+  static Future<Map<String, dynamic>?> actualizarSerie({
+    required int idDesafioRealizado,
+    required int idRutinaEjercicio,
+  }) async {
+    final headers = await _getAuthHeaders();
+    final url = Uri.parse('${ApiConfig.baseUrl}/rutina-realizada/serie');
 
-  final requestBody = jsonEncode({
-    "idDesafioRealizado": idDesafioRealizado,
-    "idRutinaEjercicio": idRutinaEjercicio,
-  });
+    final requestBody = jsonEncode({
+      "idDesafioRealizado": idDesafioRealizado,
+      "idRutinaEjercicio": idRutinaEjercicio,
+    });
 
-  final response = await http.patch(url, headers: headers, body: requestBody);
+    final response = await http.patch(url, headers: headers, body: requestBody);
 
-  print('📡 PATCH → $url');
-  print('📦 Body: $requestBody');
-  print('📥 Status: ${response.statusCode}');
-  print('📥 Response: ${response.body}');
+    print(' PATCH → $url');
+    print(' Body: $requestBody');
+    print(' Status: ${response.statusCode}');
+    print(' Response: ${response.body}');
 
-  if (response.statusCode == 200) {
-    try {
-      return jsonDecode(response.body) as Map<String, dynamic>;
-    } catch (e) {
-      print('⚠️ Error parseando respuesta: $e');
+    if (response.statusCode == 200) {
+      try {
+        return jsonDecode(response.body) as Map<String, dynamic>;
+      } catch (e) {
+        print(' Error parseando respuesta: $e');
+      }
     }
+
+    return null;
   }
-
-  return null;
-}
-
 }
