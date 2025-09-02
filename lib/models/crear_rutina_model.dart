@@ -13,7 +13,7 @@ class Rutina {
     required this.enfoque,
     required this.dificultad,
     required this.ejercicios,
-  }) : fotoRutina = fotoRutina ?? 'https://via.placeholder.com/150';  // Valor por defecto
+  }) : fotoRutina = fotoRutina ?? 'https://via.placeholder.com/150';  
 
 
   Map<String, dynamic> toJson() {
