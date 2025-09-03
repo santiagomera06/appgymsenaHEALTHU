@@ -84,7 +84,9 @@ class DetalleRutinaScreenConApi extends StatelessWidget {
             ),
           );
         }
+      
 
+      
         // Mostrar la rutina
         return DetalleRutinaScreen(rutina: snapshot.data!);
       },
