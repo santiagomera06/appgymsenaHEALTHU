@@ -127,13 +127,15 @@ Future<void> _siguienteEjercicio() async {
       if (!mounted) return;
       _timerKey.currentState?.reset();
       Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(
-          builder: (_) => ValidarInstructorScreen(
-            rutinaId: widget.rutina.id.toString(),
-          ),
-        ),
-      );
+  context,
+  MaterialPageRoute(
+    builder: (_) => ValidarInstructorScreen(
+      rutinaId: widget.rutina.id.toString(),
+      idDesafioRealizado: widget.idDesafioRealizado,
+    ),
+  ),
+);
+
     }
   } catch (e) {
     _mostrarErrorSnackbar('Error al actualizar serie: $e');

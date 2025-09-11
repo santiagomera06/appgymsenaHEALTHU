@@ -207,17 +207,34 @@ class RutinaService {
     return resp.statusCode == 200;
   }
 
-  static Future<bool> validarQRInstructor({required String qrCode}) async {
-    final body = json.encode({'codigoQR': qrCode.trim()});
+ static Future<Map<String, dynamic>?> validarQR({
+  required String codigoQR,
+  required int idDesafioRealizado,
+}) async {
+  try {
+    final headers = await _headers(withAuth: false);
 
-    final resp = await http.post(
+    final response = await http.post(
       Uri.parse('$baseUrl/admin/validarQR'),
-      headers: await _headers(withAuth: false),
-      body: body,
+      headers: headers,
+      body: json.encode({
+        "codigoQR": codigoQR,
+        "idDesafioRealizado": idDesafioRealizado,
+      }),
     ).timeout(const Duration(seconds: timeoutSeconds));
 
-    return resp.statusCode == 200;
+    if (response.statusCode == 200) {
+      return json.decode(response.body);
+    } else {
+      print('Error: ${response.statusCode} - ${response.body}');
+      return null;
+    }
+  } catch (e) {
+    print('Error al validar QR: $e');
+    return null;
   }
+}
+
 
   static rutina_model.RutinaDetalle _mapearRutinaDesdeApi(Map<String, dynamic> data) {
     final ejerciciosRaw = (data['ejercicios'] ?? data['practices'] ?? []) as List;
