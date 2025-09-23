@@ -17,6 +17,8 @@ import '../rutinas/rutina_asignada_screen.dart';
 import 'package:healthu/services/rutina_service.dart';
 import '../../widgets/quick_rutina_form.dart';
 import '../rutinas/rutina_plan_tabs_screen.dart';
+import 'package:cached_network_image/cached_network_image.dart';
+
 
 class DashboardScreen extends StatefulWidget {
   final Usuario usuario;
@@ -322,9 +324,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
             UserAccountsDrawerHeader(
               accountName: Text(usuario.nombre),
               accountEmail: Text(usuario.email),
-              currentAccountPicture:
-                  CircleAvatar(backgroundImage: NetworkImage(usuario.fotoUrl)),
-              decoration: const BoxDecoration(color: Colors.green),
+              currentAccountPicture: CircleAvatar(
+  radius: 36,
+  backgroundColor: Colors.grey[200],
+  backgroundImage: usuario.fotoUrl.isNotEmpty
+      ? CachedNetworkImageProvider(usuario.fotoUrl)
+      : null,
+  child: usuario.fotoUrl.isEmpty
+      ? const Icon(Icons.person, size: 40, color: Colors.grey)
+      : null,
+),
             ),
             ..._buildDrawerItems(),
             ListTile(

@@ -31,31 +31,30 @@ class _RegisterDatosAprendizState extends State<RegisterDatosAprendiz> {
   Future<void> registrar() async {
     final raw = widget.datosUsuario["fechaNacimiento"]!.trim();
     final dt = DateTime.parse(raw);
-    String fechaFormateada = dt.millisecondsSinceEpoch.toString();
-    // p.ej. "949382400000"
 
-    print('📅 Fecha formateada enviada al backend: $fechaFormateada');
+    // 👉 Formato compatible con LocalDateTime (sin Z, sin milisegundos)
+    String fechaFormateada = "${dt.year.toString().padLeft(4, '0')}-"
+        "${dt.month.toString().padLeft(2, '0')}-"
+        "${dt.day.toString().padLeft(2, '0')}T00:00:00";
+
+    print(' Fecha formateada enviada al backend: $fechaFormateada');
 
     final datosCompletos = {
       "nombreUsuario": widget.datosUsuario["nombreUsuario"]?.trim() ?? '',
       "emailUsuario": widget.datosUsuario["emailUsuario"]?.trim() ?? '',
-      "contrasenaUsuario":
-          widget.datosUsuario["contrasenaUsuario"]?.trim() ?? '',
+      "contrasenaUsuario": widget.datosUsuario["contrasenaUsuario"]?.trim() ?? '',
       "apellidos": widget.datosUsuario["apellidos"]?.trim() ?? '',
       "nombres": widget.datosUsuario["nombres"]?.trim() ?? '',
       "telefono": widget.datosUsuario["telefono"]?.trim() ?? '',
       "identificacion": widget.datosUsuario["identificacion"]?.trim() ?? '',
-      "fechaNacimiento": fechaFormateada,
+      "fechaNacimiento": fechaFormateada, // 👈 ahora correcto para LocalDateTime
       "estado": widget.datosUsuario["estado"]?.trim() ?? 'Activo',
       "sexo": widget.datosUsuario["sexo"]?.trim() ?? '',
-
-      // Convertidos a String
       "estatura": campos["estatura"]?.text.trim() ?? '0',
       "peso": campos["peso"]?.text.trim() ?? '0',
       "ficha": campos["ficha"]?.text.trim() ?? '0',
       "horasAcumuladas": campos["horasAcumuladas"]?.text.trim() ?? '0',
       "puntosAcumulados": campos["puntosAcumulados"]?.text.trim() ?? '0',
-
       "jornada": jornadaSeleccionada ?? '',
       "nivelFisico": nivelFisicoSeleccionado ?? '',
     };
@@ -146,32 +145,29 @@ class _RegisterDatosAprendizState extends State<RegisterDatosAprendiz> {
                       Icons.fitness_center,
                     ),
                     value: nivelFisicoSeleccionado,
-                    onChanged:
-                        (value) =>
-                            setState(() => nivelFisicoSeleccionado = value),
-                    items:
-                        nivelesFisicos
-                            .map(
-                              (nivel) => DropdownMenuItem(
-                                value: nivel,
-                                child: Text(nivel),
-                              ),
-                            )
-                            .toList(),
+                    onChanged: (value) =>
+                        setState(() => nivelFisicoSeleccionado = value),
+                    items: nivelesFisicos
+                        .map(
+                          (nivel) => DropdownMenuItem(
+                            value: nivel,
+                            child: Text(nivel),
+                          ),
+                        )
+                        .toList(),
                   ),
 
                   const SizedBox(height: 12),
                   DropdownButtonFormField<String>(
                     decoration: decoracionCampo("jornada", Icons.schedule),
                     value: jornadaSeleccionada,
-                    onChanged:
-                        (value) => setState(() => jornadaSeleccionada = value),
-                    items:
-                        jornadas
-                            .map(
-                              (j) => DropdownMenuItem(value: j, child: Text(j)),
-                            )
-                            .toList(),
+                    onChanged: (value) =>
+                        setState(() => jornadaSeleccionada = value),
+                    items: jornadas
+                        .map(
+                          (j) => DropdownMenuItem(value: j, child: Text(j)),
+                        )
+                        .toList(),
                   ),
 
                   const SizedBox(height: 24),

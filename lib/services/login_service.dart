@@ -11,13 +11,19 @@ class LoginService {
       final uri = Uri.parse('$_base/auth/login');
       final resp = await http.post(
         uri,
-        headers: {'Content-Type': 'application/json', 'Accept': 'application/json'},
-        body: jsonEncode({'emailUsuario': email, 'contrasenaUsuario': contrasena}),
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+        },
+        body: jsonEncode({
+          'emailUsuario': email,
+          'contrasenaUsuario': contrasena,
+        }),
       );
 
       if (resp.statusCode != 200) {
-        if (resp.statusCode == 401) return 'Credenciales incorrectas.';
-        return 'Error ${resp.statusCode}: ${resp.body}';
+        if (resp.statusCode == 401) return null; // credenciales inválidas
+        return null; // otro error
       }
 
       print('🔐 LOGIN RESP BODY => ${resp.body}');
@@ -29,46 +35,33 @@ class LoginService {
 
       if (token == null || token.toString().isEmpty) {
         print('⚠️ Token no recibido en login');
-        return 'Token no recibido.';
+        return null;
       }
+
       print('TOKEN recibido (recortado): ${token.toString().substring(0, 12)}...');
 
-      // 1) Extraer id_persona / id_usuario del JWT
-      final payload = _decodeJwtPayload(token.toString());
-      print(' JWT payload: $payload');
-
-      int? idPersona =
-          _toInt(payload['id_persona']) ?? _toInt(payload['idPersona']);
-      final int? idUsuario =
-          _toInt(payload['id_usuario']) ?? _toInt(payload['idUsuario']);
-
-      print('idPersona (JWT): $idPersona | idUsuario (JWT): $idUsuario');
-
-      // 2) Respaldo: si el body trae idPersona
-      idPersona ??= _pickIdPersona(body);
-      print(' idPersona (login/body): $idPersona');
-
-      // 3) Guardar en SharedPreferences
+      // Guardar en SharedPreferences
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString('token', token.toString());
       await prefs.setString('email', email);
-      await prefs.remove('id_persona');
+
+      // (opcional) decodificar payload y guardar id_persona / id_usuario
+      final payload = _decodeJwtPayload(token.toString());
+      final idPersona = _toInt(payload['id_persona']);
+      final idUsuario = _toInt(payload['id_usuario']);
 
       if (idPersona != null) {
-        await prefs.setInt('id_persona', idPersona); // SIEMPRE int
-        print(' Guardado id_persona (int): $idPersona');
-      } else {
-        print(' No se pudo resolver id_persona del JWT ni del body.');
+        await prefs.setInt('id_persona', idPersona);
       }
-
       if (idUsuario != null) {
         await prefs.setInt('id_usuario', idUsuario);
-        print(' Guardado id_usuario: $idUsuario');
       }
 
-      return null; 
+      // 👉 devolvemos el token real
+      return token.toString();
     } catch (e) {
-      return 'Error de conexión: $e';
+      print("❌ Error de conexión: $e");
+      return null;
     }
   }
 

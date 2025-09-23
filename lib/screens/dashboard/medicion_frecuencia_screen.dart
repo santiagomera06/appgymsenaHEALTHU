@@ -1,10 +1,11 @@
+import 'dart:async';
+import 'dart:math';
 import 'package:flutter/material.dart';
-import 'package:permission_handler/permission_handler.dart';
-import 'package:camera/camera.dart';
-import 'package:healthu/services/pulse_service.dart';
+import 'package:heart_bpm/heart_bpm.dart';
+import 'package:fl_chart/fl_chart.dart';
 
 class MedicionFrecuenciaScreen extends StatefulWidget {
-  const MedicionFrecuenciaScreen({Key? key}) : super(key: key);
+  const MedicionFrecuenciaScreen({super.key});
 
   @override
   State<MedicionFrecuenciaScreen> createState() =>
@@ -12,178 +13,496 @@ class MedicionFrecuenciaScreen extends StatefulWidget {
 }
 
 class _MedicionFrecuenciaScreenState extends State<MedicionFrecuenciaScreen> {
-  CameraController? _controller;
-  bool _measuring = false;
-  int? _bpm;
-  String? _error;
+  int? bpm;
+  List<SensorValue> data = [];
+  int secondsLeft = 30;
+  bool measuring = false;
+  Timer? _timer;
+  
+  // 🔹 NUEVAS VARIABLES PARA MEJOR PRECISIÓN
+  List<int> stableBpmReadings = [];
+  String signalQuality = 'Coloca tu dedo en la cámara';
+  double signalStrength = 0.0;
+  bool isSignalStable = false;
+  int consecutiveStableReadings = 0;
+  int requiredStableReadings = 3;
 
-  @override
-  void initState() {
-    super.initState();
-    _prepareCamera();
+  void _startMeasurement() {
+    if (measuring) return;
+    
+    setState(() {
+      measuring = true;
+      secondsLeft = 30;
+      bpm = null;
+      data.clear();
+      stableBpmReadings.clear();
+      signalQuality = 'Buscando señal...';
+      signalStrength = 0.0;
+      isSignalStable = false;
+      consecutiveStableReadings = 0;
+    });
+
+    _timer = Timer.periodic(const Duration(seconds: 1), (t) {
+      if (secondsLeft == 1) {
+        t.cancel();
+        setState(() => measuring = false);
+        _calculateFinalBPM();
+        
+        Future.delayed(const Duration(milliseconds: 500), () {
+          _showResultDialog();
+        });
+      } else {
+        setState(() => secondsLeft--);
+      }
+    });
+  }
+
+  // 🔹 NUEVO: Cálculo de BPM final más preciso
+  void _calculateFinalBPM() {
+    if (stableBpmReadings.isEmpty) {
+      bpm = null;
+      return;
+    }
+
+    // Filtrar valores extremos (fuera de rango humano normal)
+    final validReadings = stableBpmReadings.where((reading) => 
+        reading >= 40 && reading <= 200).toList();
+
+    if (validReadings.isEmpty) {
+      bpm = null;
+      return;
+    }
+
+    // Calcular promedio de lecturas estables
+    final sum = validReadings.reduce((a, b) => a + b);
+    bpm = (sum / validReadings.length).round();
+  }
+
+  // 🔹 NUEVO: Análisis de calidad de señal en tiempo real
+  void _analyzeSignalQuality() {
+    if (data.length < 20) {
+      setState(() {
+        signalQuality = 'Mueve lentamente el dedo sobre la cámara';
+        signalStrength = data.length / 20;
+      });
+      return;
+    }
+
+    // Calcular amplitud de la señal
+    final values = data.map((v) => v.value).toList();
+    final maxVal = values.reduce(max);
+    final minVal = values.reduce(min);
+    final amplitude = maxVal - minVal;
+
+    // Calcular varianza para detectar ruido
+    final mean = values.reduce((a, b) => a + b) / values.length;
+    double variance = 0;
+    for (var value in values) {
+      variance += pow(value - mean, 2);
+    }
+    variance /= values.length;
+
+    // 🔹 Evaluar calidad de señal
+    if (amplitude < 5) {
+      setState(() {
+        signalQuality = 'Señal débil. Presiona más el dedo';
+        signalStrength = amplitude / 10;
+        isSignalStable = false;
+      });
+    } else if (variance > 50) {
+      setState(() {
+        signalQuality = 'Mucho movimiento. Mantén la mano quieta';
+        signalStrength = 0.3;
+        isSignalStable = false;
+      });
+    } else if (amplitude > 20 && variance < 10) {
+      setState(() {
+        signalQuality = 'Señal excelente ✓';
+        signalStrength = 1.0;
+        isSignalStable = true;
+      });
+    } else {
+      setState(() {
+        signalQuality = 'Señal aceptable';
+        signalStrength = 0.7;
+        isSignalStable = true;
+      });
+    }
+  }
+
+  // 🔹 NUEVO: Validación de lecturas de BPM
+  bool _isValidBPMReading(int newBpm) {
+    // Rango fisiológico razonable
+    if (newBpm < 40 || newBpm > 200) return false;
+    
+    // Si ya tenemos lecturas previas, verificar consistencia
+    if (stableBpmReadings.isNotEmpty) {
+      final average = stableBpmReadings.reduce((a, b) => a + b) / stableBpmReadings.length;
+      // Permitir variación máxima de 20 BPM respecto al promedio
+      if ((newBpm - average).abs() > 20) return false;
+    }
+    
+    return true;
+  }
+
+  void _showResultDialog() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text("Resultado de la Medición"),
+        content: bpm != null
+            ? Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    Icons.favorite, 
+                    color: _getBpmColor(bpm!), 
+                    size: 64
+                  ),
+                  const SizedBox(height: 16),
+                  const Text(
+                    "Tu frecuencia cardíaca es:",
+                    style: TextStyle(fontSize: 18),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    "$bpm BPM",
+                    style: TextStyle(
+                      fontSize: 26,
+                      fontWeight: FontWeight.bold,
+                      color: _getBpmColor(bpm!),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    "Basado en ${stableBpmReadings.length} lecturas estables",
+                    style: const TextStyle(fontSize: 12, color: Colors.grey),
+                  ),
+                  const SizedBox(height: 8),
+                  _getBpmInterpretation(bpm!),
+                ],
+              )
+            : Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.error, color: Colors.orange, size: 64),
+                  const SizedBox(height: 16),
+                  const Text(
+                    "No se pudo obtener una medición confiable",
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    "Consejos:",
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: Colors.grey[700],
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  const Text(
+                    "• Presiona firmemente el dedo\n"
+                    "• Mantén la mano quieta\n"
+                    "• Evita cambios de luz",
+                    style: TextStyle(fontSize: 12),
+                  ),
+                ],
+              ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text("Aceptar"),
+          ),
+          if (bpm == null)
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+                _startMeasurement();
+              },
+              child: const Text("Reintentar"),
+            ),
+        ],
+      ),
+    );
+  }
+
+  // 🔹 NUEVO: Color según rango de BPM
+  Color _getBpmColor(int bpm) {
+    if (bpm < 60) return Colors.blue;
+    if (bpm >= 60 && bpm <= 100) return Colors.green;
+    if (bpm <= 120) return Colors.orange;
+    return Colors.red;
+  }
+
+  // 🔹 NUEVO: Interpretación del resultado
+  Widget _getBpmInterpretation(int bpm) {
+    String text;
+    Color color;
+    
+    if (bpm < 60) {
+      text = "Frecuencia baja (Bradicardia)";
+      color = Colors.blue;
+    } else if (bpm <= 100) {
+      text = "Frecuencia normal";
+      color = Colors.green;
+    } else if (bpm <= 120) {
+      text = "Frecuencia elevada";
+      color = Colors.orange;
+    } else {
+      text = "Frecuencia alta (Taquicardia)";
+      color = Colors.red;
+    }
+    
+    return Text(
+      text,
+      style: TextStyle(color: color, fontWeight: FontWeight.bold),
+    );
   }
 
   @override
   void dispose() {
-    _disposeCamera();
+    _timer?.cancel();
     super.dispose();
   }
 
-  Future<void> _prepareCamera() async {
-    try {
-      if (!await _requestCameraPermission()) {
-        if (mounted) setState(() => _error = 'Permiso de cámara denegado');
-        return;
-      }
-      final back = (await availableCameras())
-          .firstWhere((c) => c.lensDirection == CameraLensDirection.back);
-
-      _controller =
-          CameraController(back, ResolutionPreset.low, enableAudio: false);
-      await _controller!.initialize();
-      await _controller!.setFlashMode(FlashMode.torch);
-      if (mounted) setState(() {}); 
-    } catch (e) {
-      if (mounted) setState(() => _error = 'Error al inicializar cámara: $e');
-    }
-  }
-
-  Future<bool> _requestCameraPermission() async =>
-      (await Permission.camera.request()).isGranted;
-
-  Future<void> _disposeCamera() async {
-    final old = _controller;
-    _controller = null;
-    if (mounted) setState(() {});              
-    await old?.dispose();
-  }
-
-//medicion
-
-  Future<void> _iniciarMedicion() async {
-    if (_measuring) return;
-
-    if (_controller == null) await _prepareCamera();
-    if (_controller == null) return;
-
-    await _controller!.setFlashMode(FlashMode.torch);
-
-    if (!mounted) return;
-    setState(() {
-      _measuring = true;
-      _error = null;
-      _bpm = null;  // limpia resultado previo
-    });
-
-    try {
-      final r = await PulseService()
-          .measurePulse(controller: _controller!, durationSeconds: 8);
-
-      if (!mounted) return;                   
-      if (r == null) {
-        setState(() {
-          _error = 'No se detectaron pulsaciones suficientes.';
-          _bpm = null;
-        });
-      } else {
-        setState(() {
-          _bpm = r;
-          _error = null;
-        });
-      }
-    } catch (e) {
-      if (mounted) {
-        setState(() {
-          _error = e.toString();
-          _bpm = null;
-        });
-      }
-    } finally {
-      if (mounted) setState(() => _measuring = false);
-      await _disposeCamera();
-    }
-  }
-
-
-
   @override
-  Widget build(BuildContext context) => Scaffold(
-        appBar: AppBar(title: const Text('Medición de Frecuencia')),
-        body: Center(child: _buildBody()),
-      );
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text("Medición de Frecuencia Cardíaca"),
+        backgroundColor: Colors.red[700],
+      ),
+      body: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            if (measuring)
+              HeartBPMDialog(
+                context: context,
+                onRawData: (value) {
+                  setState(() {
+                    data.add(value);
+                    if (data.length > 100) data.removeAt(0);
+                  });
+                  
+                  _analyzeSignalQuality();
+                  debugPrint("RAW >> index=${data.length} : y=${value.value}");
+                  debugPrint("Calidad: $signalQuality - Fuerza: ${signalStrength.toStringAsFixed(2)}");
+                },
+                onBPM: (value) {
+                  if (value > 0 && _isValidBPMReading(value) && isSignalStable) {
+                    consecutiveStableReadings++;
+                    
+                    // 🔹 Solo aceptar lectura después de múltiples lecturas estables
+                    if (consecutiveStableReadings >= requiredStableReadings) {
+                      setState(() {
+                        stableBpmReadings.add(value);
+                        bpm = value;
+                      });
+                      debugPrint("❤️ BPM estable detectado: $value");
+                    }
+                  } else {
+                    consecutiveStableReadings = 0;
+                  }
+                },
+              ),
+            const SizedBox(height: 20),
 
-  Widget _buildBody() {
-    if (_measuring) return _buildMeasuring();
-    if (_error != null) return _buildError();
-    if (_bpm != null) return _buildResult();
-    if (_controller == null) return _buildIdle();
-    return _buildReady();
+            // 🔹 MEJORADO: Gráfico con indicador de calidad
+            _buildChartWithQuality(),
+
+            const SizedBox(height: 20),
+
+            // 🔹 MEJORADO: Información de medición
+            _buildMeasurementInfo(),
+
+            const SizedBox(height: 20),
+
+            // 🔹 MEJORADO: Botón con validación
+            ElevatedButton.icon(
+              onPressed: measuring ? null : _startMeasurement,
+              icon: Icon(
+                measuring ? Icons.timer : Icons.monitor_heart,
+                color: measuring ? Colors.grey : Colors.white,
+              ),
+              label: Text(
+                measuring ? "Midiendo... $secondsLeft s" : "Iniciar medición precisa",
+                style: TextStyle(color: measuring ? Colors.grey : Colors.white),
+              ),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.red[700],
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
-  Widget _buildMeasuring() => Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          if (_controller != null) _buildPreview(),
-          const SizedBox(height: 16),
-          const CircularProgressIndicator(),
-          const SizedBox(height: 16),
-          const Text('Midiendo…  !     por favor colocar  el dedo anular o medio  debe tapara toda la camara '),
-        ],
-      );
-
-  Widget _buildResult() => Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(Icons.favorite, size: 64, color: Colors.red.shade400),
-          const SizedBox(height: 16),
-          Text(
-            'Tu pulso: $_bpm BPM',
-            style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+  // 🔹 NUEVO: Gráfico con indicador de calidad visual
+  Widget _buildChartWithQuality() {
+    return Column(
+      children: [
+        SizedBox(
+          height: 150,
+          width: double.infinity,
+          child: _buildChart(),
+        ),
+        const SizedBox(height: 10),
+        
+        // Indicador de calidad de señal
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              isSignalStable ? Icons.check_circle : Icons.warning,
+              color: isSignalStable ? Colors.green : Colors.orange,
+              size: 16,
+            ),
+            const SizedBox(width: 8),
+            Text(
+              signalQuality,
+              style: TextStyle(
+                color: isSignalStable ? Colors.green : Colors.orange,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ],
+        ),
+        
+        // Barra de progreso de fuerza de señal
+        Container(
+          width: 200,
+          height: 4,
+          decoration: BoxDecoration(
+            color: Colors.grey[300],
+            borderRadius: BorderRadius.circular(2),
           ),
-          const SizedBox(height: 24),
-          ElevatedButton(
-            onPressed: _iniciarMedicion,
-            child: const Text('Medir de nuevo'),
+          child: FractionallySizedBox(
+            alignment: Alignment.centerLeft,
+            widthFactor: signalStrength.clamp(0.0, 1.0),
+            child: Container(
+              decoration: BoxDecoration(
+                color: _getSignalColor(signalStrength),
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
           ),
-        ],
-      );
+        ),
+      ],
+    );
+  }
 
-  Widget _buildError() => Column(
-        mainAxisSize: MainAxisSize.min,
+  Color _getSignalColor(double strength) {
+    if (strength < 0.3) return Colors.red;
+    if (strength < 0.7) return Colors.orange;
+    return Colors.green;
+  }
+
+  // 🔹 MEJORADO: Información de medición
+  Widget _buildMeasurementInfo() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.grey[50],
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey[300]!),
+      ),
+      child: Column(
         children: [
-          const Icon(Icons.error_outline, size: 48, color: Colors.red),
-          const SizedBox(height: 12),
-          Text(_error!, style: const TextStyle(color: Colors.red)),
-          const SizedBox(height: 24),
-          ElevatedButton(
-            onPressed: _iniciarMedicion,
-            child: const Text('Intentar de nuevo'),
+          if (bpm != null && measuring)
+            Text(
+              "Lectura actual: $bpm BPM",
+              style: const TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                color: Colors.red,
+              ),
+            )
+          else if (measuring)
+            Text(
+              "Analizando señal... $secondsLeft s",
+              style: TextStyle(
+                fontSize: 16,
+                color: Colors.grey[700],
+              ),
+            )
+          else
+            const Text(
+              "Instrucciones para medición precisa:",
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+          
+          if (!measuring) ...[
+            const SizedBox(height: 8),
+            const Text(
+              "• Cubre completamente la cámara con tu dedo\n"
+              "• Mantén la mano apoyada y quieta\n"
+              "• Evita hablar o moverte durante la medición\n"
+              "• Asegura buena iluminación ambiente",
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 12),
+            ),
+          ],
+          
+          if (measuring && stableBpmReadings.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            Text(
+              "Lecturas estables: ${stableBpmReadings.length}",
+              style: const TextStyle(fontSize: 12, color: Colors.green),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  /// Gráfico desplazándose en vivo (mejorado)
+  Widget _buildChart() {
+    if (data.isEmpty) {
+      return const Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.fingerprint, size: 40, color: Colors.grey),
+            SizedBox(height: 8),
+            Text("Esperando señal del dedo..."),
+          ],
+        ),
+      );
+    }
+
+    final points = data
+        .asMap()
+        .entries
+        .map((e) => FlSpot(e.key.toDouble(), e.value.value.toDouble()))
+        .toList();
+
+    final ys = points.map((p) => p.y).toList();
+    final yMin = ys.reduce((a, b) => a < b ? a : b);
+    final yMax = ys.reduce((a, b) => a > b ? a : b);
+    final pad = ((yMax - yMin).abs() * 0.1) + 1e-6;
+
+    return LineChart(
+      LineChartData(
+        minY: yMin - pad,
+        maxY: yMax + pad,
+        titlesData: FlTitlesData(show: false),
+        gridData: FlGridData(show: false),
+        borderData: FlBorderData(show: false),
+        lineBarsData: [
+          LineChartBarData(
+            isCurved: true,
+            color: isSignalStable ? Colors.green : Colors.red,
+            barWidth: isSignalStable ? 3 : 2,
+            dotData: FlDotData(show: false),
+            spots: points,
           ),
         ],
-      );
-
-  Widget _buildIdle() => ElevatedButton(
-        onPressed: _iniciarMedicion,
-        child: const Text('Iniciar medición'),
-      );
-
-  Widget _buildReady() => Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          _buildPreview(),
-          const SizedBox(height: 16),
-          ElevatedButton(
-            onPressed: _iniciarMedicion,
-            child: const Text('Iniciar medición'),
-          ),
-        ],
-      );
-
-  Widget _buildPreview() {
-    if (_controller == null) return const SizedBox.shrink();
-    return AspectRatio(
-      aspectRatio: _controller!.value.aspectRatio,
-      child: CameraPreview(_controller!),
+      ),
     );
   }
 }

@@ -40,7 +40,7 @@ class HealthuApp extends StatelessWidget {
       initialRoute: '/',
       routes: {
         '/': (context) => const Login(),
-        '/medicion-frecuencia': (ctx) => const MedicionFrecuenciaScreen(),
+        '/medicion-frecuencia': (context) => const MedicionFrecuenciaScreen(),
         '/login': (context) => const Login(),
         '/registro': (context) => const RegisterAprendiz(),
         '/home':
@@ -88,11 +88,11 @@ class HealthuApp extends StatelessWidget {
     final data = json.decode(payload);
 
     return Usuario(
-      id: data['id_usuario'].toString(),
-      nombre: data['nombre_usuario'] ?? 'Usuario',
-      email: data['sub'],
-      fotoUrl: 'https://via.placeholder.com/150',
-      nivelActual: data['rol'] ?? 'Aprendiz',
-    );
+  id: data['id_usuario'].toString(),
+  nombre: data['nombre_usuario'] ?? 'Usuario',
+  email: data['sub'],
+  fotoUrl: data['foto'] ?? '', 
+  nivelActual: data['rol'] ?? 'Aprendiz',
+);
   }
 }

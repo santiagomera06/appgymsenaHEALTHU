@@ -31,16 +31,19 @@ dependencies:
 
 
   shared_preferences: ^2.2.2
+  jwt_decoder: ^2.0.1
   image_picker: ^1.0.4
   http: ^1.1.0
   http_parser: ^4.0.0 
   cached_network_image: ^3.3.0  # ← Nueva dependencia para manejo de imágenes
   lottie: ^3.3.1
-
+#para la precion arterial
+  heart_bpm: ^2.0.0
 dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^5.0.0
+  
 
 flutter:
   uses-material-design: true

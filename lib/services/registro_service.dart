@@ -8,7 +8,7 @@ class RegistroService {
     File? imagen,
   ) async {
     try {
-      var uri = Uri.parse('http://54.82.114.190:8080/auth/register'); 
+      var uri = Uri.parse('http://54.227.38.102:8080/auth/register'); 
       var request = http.MultipartRequest('POST', uri);
       datos.forEach((key, value) {
         request.fields[key] = value.toString();

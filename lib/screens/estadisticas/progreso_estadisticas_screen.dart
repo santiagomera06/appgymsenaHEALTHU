@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-/// 🏆 Pantalla para ver estadísticas detalladas de rutinas completadas
+///  Pantalla para ver estadísticas detalladas de rutinas completadas
 class ProgresoEstadisticasScreen extends StatefulWidget {
   const ProgresoEstadisticasScreen({super.key});
 

@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:healthu/services/login_service.dart';
+import 'package:healthu/models/usuario.dart';
+import 'package:healthu/screens/home inicio/home_screen.dart';
+import 'package:jwt_decoder/jwt_decoder.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class Login extends StatefulWidget {
   const Login({super.key});
@@ -24,15 +28,46 @@ class _LoginState extends State<Login> {
     final email = usuarioCtrl.text.trim();
     final contrasena = claveCtrl.text.trim();
 
-    final error = await LoginService().login(email, contrasena);
+    final token = await LoginService().login(email, contrasena);
 
     if (!mounted) return;
 
-    if (error == null) {
-      Navigator.pushReplacementNamed(context, '/home');
+    if (token != null) {
+      try {
+        // Decodificar el token
+        Map<String, dynamic> decoded = JwtDecoder.decode(token);
+        debugPrint("✅ JWT payload: $decoded");
+
+        // Crear objeto Usuario con lo que viene en el token
+        final usuario = Usuario(
+          id: decoded['id_usuario'].toString(),
+          nombre: decoded['nombre_usuario'] ?? '',
+          email: decoded['sub'] ?? '',
+          fotoUrl: decoded['foto'] ?? '',
+          nivelActual: decoded['rol'] ?? '',
+        );
+
+        // Guardar datos en SharedPreferences
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString('token', token);
+        await prefs.setString('id_usuario', usuario.id);
+        await prefs.setString('id_persona', decoded['id_persona'].toString());
+        await prefs.setString('fotoPerfil', usuario.fotoUrl);
+
+        if (!mounted) return;
+
+        // 👉 Ir al home usando la ruta definida en main.dart
+        Navigator.pushReplacementNamed(context, '/home');
+      } catch (e, st) {
+        debugPrint(" Error al procesar token: $e");
+        debugPrint("StackTrace: $st");
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Error al procesar datos de sesión")),
+        );
+      }
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(error)),
+        const SnackBar(content: Text("Error al iniciar sesión")),
       );
     }
   }
