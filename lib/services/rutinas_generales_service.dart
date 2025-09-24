@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:flutter/foundation.dart'; // 👈 para usar debugPrint
 
 class Ejercicio {
   final int idEjercicio;
@@ -19,11 +20,35 @@ class Ejercicio {
   });
 
   factory Ejercicio.fromJson(Map<String, dynamic> json) {
+    String? imagen;
+
+    // Usar fotoEjercicio como campo principal
+    if (json['fotoEjercicio'] != null) {
+      final foto = json['fotoEjercicio'].toString();
+      if (foto.startsWith('http')) {
+        imagen = foto;
+      } else {
+        imagen = 'http://54.227.38.102:8080/uploads/$foto';
+      }
+    }
+    // Si no hay fotoEjercicio, intentar con "imagen"
+    
+    else if (json['imagen'] != null) {
+      final foto = json['imagen'].toString();
+      if (foto.startsWith('http')) {
+        imagen = foto;
+      } else {
+        imagen = 'http://54.227.38.102:8080/uploads/$foto';
+      }
+    }
+
+    debugPrint('🏋️ Ejercicio recibido: ${json['nombre']} | foto: $imagen');
+
     return Ejercicio(
       idEjercicio: json['idEjercicio'] ?? 0,
       nombre: json['nombre'] ?? 'Ejercicio sin nombre',
       descripcion: json['descripcion'] ?? '',
-      imagen: json['imagen'],
+      imagen: imagen,
       series: json['series'],
       repeticiones: json['repeticiones'],
     );
@@ -48,13 +73,44 @@ class Rutina {
   });
 
   factory Rutina.fromJson(Map<String, dynamic> json) {
+    String tipoOriginal = json['dificultad']?.toString() ?? 'General';
+
+    debugPrint(
+      '➡️ Rutina recibida: ${json['nombre']} | dificultad: $tipoOriginal',
+    );
+    debugPrint('📸 Foto de rutina: ${json['fotoRutina']}');
+
+    // Normalizamos dificultad
+    String tipo = tipoOriginal.toLowerCase();
+    if (tipo.contains('principiante')) {
+      tipo = 'Principiante';
+    } else if (tipo.contains('intermedio')) {
+      tipo = 'Intermedio';
+    } else if (tipo.contains('avanzado')) {
+      tipo = 'Avanzado';
+    } else {
+      tipo = 'General';
+    }
+
+    // Procesamos foto de rutina
+    String? imagen;
+    if (json['fotoRutina'] != null) {
+      final foto = json['fotoRutina'].toString();
+      if (foto.startsWith('http')) {
+        imagen = foto;
+      } else {
+        imagen = 'http://54.227.38.102:8080/uploads/$foto';
+      }
+    }
+
     return Rutina(
       idRutina: json['idRutina'] ?? 0,
       nombre: json['nombre'] ?? 'Rutina sin nombre',
       descripcion: json['descripcion'] ?? '',
-      imagen: json['imagen'],
-      tipo: json['tipo'] ?? 'General',
-      ejercicios: (json['ejercicios'] as List?)
+      imagen: imagen,
+      tipo: tipo,
+      ejercicios:
+          (json['ejercicios'] as List?)
               ?.map((e) => Ejercicio.fromJson(e))
               .toList() ??
           [],
@@ -63,7 +119,7 @@ class Rutina {
 }
 
 class RutinasGeneralesService {
-   static const String baseUrl = 'http://54.227.38.102:8080';
+  static const String baseUrl = 'http://54.227.38.102:8080';
   static const String rutinasEndpoint = '/rutina/obtenerRutinas';
 
   Future<List<Rutina>> obtenerRutinas() async {

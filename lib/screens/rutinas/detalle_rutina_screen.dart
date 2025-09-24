@@ -16,80 +16,89 @@ class DetalleRutinaScreenConApi extends StatelessWidget {
         // Estado de carga
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Scaffold(
-            body: Center(
-              child: CircularProgressIndicator(),
-            ),
+            body: Center(child: CircularProgressIndicator()),
           );
         }
 
         // Manejo de errores
         if (snapshot.hasError) {
-          return Scaffold(
-            appBar: AppBar(title: const Text('Error')),
-            body: Center(
-              child: Padding(
-                padding: const EdgeInsets.all(20.0),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const Icon(Icons.error_outline, size: 50, color: Colors.red),
-                    const SizedBox(height: 20),
-                    Text(
-                      'Error al cargar la rutina',
-                      style: Theme.of(context).textTheme.headlineSmall,
-                    ),
-                    const SizedBox(height: 10),
-                    Text(
-                      snapshot.error.toString(),
-                      textAlign: TextAlign.center,
-                      style: Theme.of(context).textTheme.bodyMedium,
-                    ),
-                    const SizedBox(height: 20),
-                    ElevatedButton(
-                      onPressed: () {
-                        Navigator.of(context).pop();
-                      },
-                      child: const Text('Volver'),
-                    ),
-                  ],
-                ),
-              ),
-            ),
+          return _buildErrorScaffold(
+            context,
+            title: 'Error',
+            icon: Icons.error_outline,
+            color: Colors.red,
+            message: 'Error al cargar la rutina',
+            details: snapshot.error.toString(),
           );
         }
 
         // Verificación de datos nulos
         if (!snapshot.hasData || snapshot.data == null) {
-          return Scaffold(
-            appBar: AppBar(title: const Text('Rutina no encontrada')),
-            body: Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Icon(Icons.search_off, size: 50, color: Colors.orange),
-                  const SizedBox(height: 20),
-                  Text(
-                    'No se encontró la rutina solicitada',
-                    style: Theme.of(context).textTheme.headlineSmall,
-                  ),
-                  const SizedBox(height: 20),
-                  ElevatedButton(
-                    onPressed: () {
-                      Navigator.of(context).pop();
-                    },
-                    child: const Text('Volver'),
-                  ),
-                ],
-              ),
-            ),
+          return _buildErrorScaffold(
+            context,
+            title: 'Rutina no encontrada',
+            icon: Icons.search_off,
+            color: Colors.orange,
+            message: 'No se encontró la rutina solicitada',
           );
         }
-      
 
-      
         // Mostrar la rutina
         return DetalleRutinaScreen(rutina: snapshot.data!);
       },
+    );
+  }
+
+  /// Construye pantallas de error/reintento reutilizables
+  Scaffold _buildErrorScaffold(
+    BuildContext context, {
+    required String title,
+    required IconData icon,
+    required Color color,
+    required String message,
+    String? details,
+  }) {
+    return Scaffold(
+      appBar: AppBar(title: Text(title)),
+      body: Center(
+        child: Padding(
+          padding: const EdgeInsets.all(20.0),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(icon, size: 60, color: color),
+              const SizedBox(height: 20),
+              Text(
+                message,
+                style: Theme.of(context).textTheme.headlineSmall,
+              ),
+              if (details != null) ...[
+                const SizedBox(height: 10),
+                Text(
+                  details,
+                  textAlign: TextAlign.center,
+                  style: Theme.of(context).textTheme.bodyMedium,
+                ),
+              ],
+              const SizedBox(height: 20),
+              ElevatedButton.icon(
+                onPressed: () => Navigator.of(context).pop(),
+                icon: const Icon(Icons.arrow_back),
+                label: const Text('Volver'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.green[700],
+                  foregroundColor: Colors.white,
+                  shape: const StadiumBorder(),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 24,
+                    vertical: 12,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

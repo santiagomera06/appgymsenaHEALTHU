@@ -236,18 +236,38 @@ class RutinaService {
 }
 
 
-  static rutina_model.RutinaDetalle _mapearRutinaDesdeApi(Map<String, dynamic> data) {
-    final ejerciciosRaw = (data['ejercicios'] ?? data['practices'] ?? []) as List;
-    return rutina_model.RutinaDetalle(
-      id: int.tryParse(data['identifier']?.toString() ?? data['idRutina']?.toString() ?? data['id']?.toString() ?? '0') ?? 0,
-      nombre: data['nombre'] ?? data['name'] ?? 'Rutina sin nombre',
-      descripcion: data['descripcion'] ?? data['description'] ?? '',
-      imagenUrl: data['fotoRutina'] ?? data['imageUrl'] ?? '',
-      nivel: data['nivel'] ?? data['level'] ?? data['dificultad'] ?? 'Intermedio',
-      completada: data['completada'] ?? data['completed'] ?? false,
-      ejercicios: _mapearEjercicios(ejerciciosRaw),
-    );
+ static rutina_model.RutinaDetalle _mapearRutinaDesdeApi(Map<String, dynamic> data) {
+  final ejerciciosRaw = (data['ejercicios'] ?? data['practices'] ?? []) as List;
+
+  // 🔎 Normalización de imagen
+  String? imagen;
+  final foto = data['fotoRutina'] ?? data['imageUrl'] ?? '';
+  if (foto != null && foto.toString().isNotEmpty) {
+    final fotoStr = foto.toString();
+    if (fotoStr.startsWith('http')) {
+      imagen = fotoStr;
+    } else {
+      imagen = 'http://54.227.38.102:8080/uploads/$fotoStr';
+    }
   }
+
+  return rutina_model.RutinaDetalle(
+    id: int.tryParse(
+          data['identifier']?.toString() ??
+          data['idRutina']?.toString() ??
+          data['id']?.toString() ??
+          '0',
+        ) ??
+        0,
+    nombre: data['nombre'] ?? data['name'] ?? 'Rutina sin nombre',
+    descripcion: data['descripcion'] ?? data['description'] ?? '',
+    imagenUrl: imagen ?? '',
+    nivel: data['nivel'] ?? data['level'] ?? data['dificultad'] ?? 'Intermedio',
+    completada: data['completada'] ?? data['completed'] ?? false,
+    ejercicios: _mapearEjercicios(ejerciciosRaw),
+  );
+}
+
 
   static List<rutina_model.EjercicioRutina> _mapearEjercicios(List<dynamic> items) {
     int _int(dynamic v, [int def = 0]) => v == null ? def : (v is int ? v : int.tryParse(v.toString()) ?? def);
