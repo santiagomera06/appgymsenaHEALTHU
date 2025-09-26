@@ -1,4 +1,3 @@
-
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 
@@ -11,7 +10,6 @@ class SelectorDispersion extends StatefulWidget {
 
 class _SelectorDispersionState extends State<SelectorDispersion> {
   int _index = 0; 
-
 
   final List<double> duraciones = [10, 20, 30, 40, 50];   // min
   final List<double> calorias   = [50, 120, 200, 280, 350]; // kcal
@@ -30,9 +28,17 @@ class _SelectorDispersionState extends State<SelectorDispersion> {
       titulo = 'Duración-Calorías';
       spots  = [
         for (var d in duraciones)
-          ScatterSpot(d, 0, color: Colors.blue,   radius: 6),
+          ScatterSpot(
+            d,
+            0,
+            dotPainter: FlDotCirclePainter(color: Colors.blue, radius: 6),
+          ),
         for (var c in calorias)
-          ScatterSpot(0, c, color: Colors.orange, radius: 6),
+          ScatterSpot(
+            0,
+            c,
+            dotPainter: FlDotCirclePainter(color: Colors.orange, radius: 6),
+          ),
       ];
       leyendas = const [
         _Leyenda(color: Colors.blue,   texto: 'Duración (min)'),
@@ -43,9 +49,17 @@ class _SelectorDispersionState extends State<SelectorDispersion> {
       titulo = 'Peso-IMC';
       spots  = [
         for (var p in pesos)
-          ScatterSpot(p, 0, color: Colors.green,  radius: 6),
+          ScatterSpot(
+            p,
+            0,
+            dotPainter: FlDotCirclePainter(color: Colors.green, radius: 6),
+          ),
         for (var i in imc)
-          ScatterSpot(0, i, color: Colors.yellow, radius: 6),
+          ScatterSpot(
+            0,
+            i,
+            dotPainter: FlDotCirclePainter(color: Colors.yellow, radius: 6),
+          ),
       ];
       leyendas = const [
         _Leyenda(color: Colors.green,  texto: 'Peso (kg)'),
@@ -92,7 +106,7 @@ class _SelectorDispersionState extends State<SelectorDispersion> {
           children: leyendas
               .expand((l) => [l, const SizedBox(width: 16)])
               .toList()
-            ..removeLast(), // quita el último espacio
+            ..removeLast(),
         ),
       ],
     );

@@ -11,8 +11,8 @@ class Desafio {
     required this.id,
     required this.nombre,
     this.descripcion = '',
-    required this.desbloqueado,
-    required this.completado,
+    this.desbloqueado = false, // 👈 valor por defecto
+    this.completado = false,   // 👈 valor por defecto
     this.puntuacion = 0,
     this.ejerciciosIds = const [],
   });

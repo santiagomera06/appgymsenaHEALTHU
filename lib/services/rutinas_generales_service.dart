@@ -1,6 +1,6 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-import 'package:flutter/foundation.dart'; // 👈 para usar debugPrint
+import 'package:flutter/foundation.dart'; 
 
 class Ejercicio {
   final int idEjercicio;
@@ -32,7 +32,7 @@ class Ejercicio {
       }
     }
     // Si no hay fotoEjercicio, intentar con "imagen"
-    
+
     else if (json['imagen'] != null) {
       final foto = json['imagen'].toString();
       if (foto.startsWith('http')) {
