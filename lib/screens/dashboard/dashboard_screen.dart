@@ -11,17 +11,15 @@ import '../../widgets/notificaciones_widget.dart';
 import 'ficha_identificacion.dart';
 import 'tarjetas_dashboard.dart';
 import '../graficas/graficas_dashboard.dart';
-import '../graficas/grafica_anillo.dart';
+import '../graficas/grafica_anillo.dart'; 
 import '../editar usuario/editar_usuario_screen.dart';
 import '../rutinas/rutina_asignada_screen.dart';
 import 'package:healthu/services/rutina_service.dart';
-import 'package:healthu/services/desafio_service.dart';
 import '../../widgets/quick_rutina_form.dart';
 import '../rutinas/rutina_plan_tabs_screen.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../../widgets/grafica_barras_calorias.dart';
-
-
+import 'package:healthu/services/desafio_service.dart';
 
 
 class DashboardScreen extends StatefulWidget {
@@ -37,22 +35,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
   bool _cargandoAsignacion = false;
   bool _generando = false;
 
-  Future<Map<String, int>>? _futureConteoEstados;
-
   @override
   void initState() {
     super.initState();
     usuario = widget.usuario;
-    _cargarEstados();
-  }
-
-  void _cargarEstados() async {
-    final idPersona = await _resolverIdPersona();
-    if (idPersona != null) {
-      setState(() {
-        _futureConteoEstados = DesafioService.obtenerConteoEstados(idPersona);
-      });
-    }
   }
 
   void _showSnack(String msg, {Color? bg, IconData? icon}) {
@@ -177,9 +163,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
             : '¡Buenas noches!';
   }
 
-  String _fmt(DateTime? dt) =>
-      dt == null ? '-' : DateFormat('yyyy-MM-dd HH:mm').format(dt.toLocal());
-
   Future<int?> _resolverIdPersona() async {
     final prefs = await SharedPreferences.getInstance();
     final dynamic raw = prefs.get('id_persona');
@@ -264,10 +247,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
             bg: Colors.teal, icon: Icons.check);
       }
     } catch (e) {
-      final msg =
-          e.toString().toLowerCase().contains('timeoutexception')
-              ? 'No se pudo contactar al servidor (timeout).'
-              : 'Error al generar rutina. Revisa consola para detalles';
+      final msg = e.toString().toLowerCase().contains('timeoutexception')
+          ? 'No se pudo contactar al servidor (timeout).'
+          : 'Error al generar rutina. Revisa consola para detalles';
       _showSnack(msg, bg: Colors.redAccent, icon: Icons.error_outline);
     } finally {
       if (mounted) setState(() => _generando = false);
@@ -390,11 +372,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
             GraficaBarras(valores: datosSemana),
             const SizedBox(height: 32),
 
-            // 🔹 Gráfica circular separada en pedazos numerados
+            // 🔹 Gráfica circular encapsulada
             const TextoSeccion('Desafíos Finalizados vs En Progreso'),
             const SizedBox(height: 16),
-            FutureBuilder<Map<String, int>>(
-              future: _futureConteoEstados,
+            const GraficaDesafios(), // 👈 aquí quedó todo limpio
+
+            const SizedBox(height: 32),
+            const TextoSeccion('Calorías quemadas por día'),
+            const SizedBox(height: 16),
+            FutureBuilder<Map<String, double>>(
+              future: DesafioService.obtenerCaloriasQuemadasPorDia(),
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
                   return const Center(child: CircularProgressIndicator());
@@ -402,83 +389,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 if (snapshot.hasError) {
                   return Text("Error: ${snapshot.error}");
                 }
-                if (!snapshot.hasData) {
+                if (!snapshot.hasData || snapshot.data!.isEmpty) {
                   return const Text("No hay datos disponibles");
                 }
 
-                final data = snapshot.data!;
-                final secciones = <PieSectionDataModel>[];
-
-                // Finalizados → pedazos verdes numerados
-                for (int i = 0; i < (data["finalizados"] ?? 0); i++) {
-                  secciones.add(PieSectionDataModel(
-                    value: 1,
-                    color: Colors.green,
-                    label: "${i + 1}",
-                    textColor: Colors.white,
-                  ));
-                }
-
-                // En progreso → pedazos naranjas numerados
-                for (int i = 0; i < (data["enProgreso"] ?? 0); i++) {
-                  secciones.add(PieSectionDataModel(
-                    value: 1,
-                    color: Colors.orange,
-                    label: "${i + 1}",
-                    textColor: Colors.black,
-                  ));
-                }
-
-                return Column(
-                  children: [
-                    GraficaCircular(sections: secciones),
-                    const SizedBox(height: 12),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Row(
-                          children: [
-                            Container(width: 16, height: 16, color: Colors.green),
-                            const SizedBox(width: 6),
-                            const Text("Finalizados"),
-                          ],
-                        ),
-                        const SizedBox(width: 20),
-                        Row(
-                          children: [
-                            Container(width: 16, height: 16, color: Colors.orange),
-                            const SizedBox(width: 6),
-                            const Text("En Progreso"),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ],
-                );
+                return GraficaBarrasCalorias(caloriasPorDia: snapshot.data!);
               },
             ),
-
-            const SizedBox(height: 32),
-const TextoSeccion('Calorías quemadas por día'),
-const SizedBox(height: 16),
-FutureBuilder<Map<String, double>>(
-  future: DesafioService.obtenerCaloriasQuemadasPorDia(),
-  builder: (context, snapshot) {
-    if (snapshot.connectionState == ConnectionState.waiting) {
-      return const Center(child: CircularProgressIndicator());
-    }
-    if (snapshot.hasError) {
-      return Text("Error: ${snapshot.error}");
-    }
-    if (!snapshot.hasData || snapshot.data!.isEmpty) {
-      return const Text("No hay datos disponibles");
-    }
-
-    return GraficaBarrasCalorias(caloriasPorDia: snapshot.data!);
-  },
-),
-
-
 
             const SizedBox(height: 32),
             const TextoSeccion('Calorías por actividad (semana)'),
