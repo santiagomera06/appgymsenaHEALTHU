@@ -15,44 +15,89 @@ class MedicionFrecuenciaScreen extends StatefulWidget {
 class _MedicionFrecuenciaScreenState extends State<MedicionFrecuenciaScreen> {
   int? bpm;
   List<SensorValue> data = [];
-  int secondsLeft = 30;
+  int secondsLeft = 40; // ✅ Cambiado a 40 segundos
   bool measuring = false;
   Timer? _timer;
+  bool _cameraInitialized = false;
   
   // 🔹 NUEVAS VARIABLES PARA MEJOR PRECISIÓN
   List<int> stableBpmReadings = [];
   String signalQuality = 'Coloca tu dedo en la cámara';
   double signalStrength = 0.0;
+  
   bool isSignalStable = false;
   int consecutiveStableReadings = 0;
   int requiredStableReadings = 3;
 
-  void _startMeasurement() {
+  // ✅ NUEVO: Método mejorado para iniciar medición
+  void _startMeasurement() async {
     if (measuring) return;
     
+    // ✅ Resetear estado primero
     setState(() {
       measuring = true;
-      secondsLeft = 30;
+      secondsLeft = 40; // ✅ 40 segundos
       bpm = null;
       data.clear();
       stableBpmReadings.clear();
-      signalQuality = 'Buscando señal...';
+      signalQuality = 'Inicializando cámara...';
       signalStrength = 0.0;
       isSignalStable = false;
       consecutiveStableReadings = 0;
+      _cameraInitialized = false;
     });
 
+    // ✅ Pequeño delay para permitir que la UI se actualice
+    await Future.delayed(const Duration(milliseconds: 100));
+
+    // ✅ Inicializar cámara de forma asíncrona
+    _initializeCameraAsync();
+  }
+
+  // ✅ NUEVO: Inicialización asíncrona de la cámara
+  void _initializeCameraAsync() {
+    Future.delayed(const Duration(milliseconds: 500), () {
+      if (!mounted) return;
+      
+      setState(() {
+        _cameraInitialized = true;
+        signalQuality = 'Buscando señal...';
+      });
+      
+      // ✅ Iniciar timer después de que la cámara esté lista
+      _startMeasurementTimer();
+    });
+  }
+
+  // ✅ NUEVO: Timer mejorado para 40 segundos
+  void _startMeasurementTimer() {
+    _timer?.cancel(); // Cancelar timer previo si existe
+    
     _timer = Timer.periodic(const Duration(seconds: 1), (t) {
-      if (secondsLeft == 1) {
+      if (!mounted) {
         t.cancel();
-        setState(() => measuring = false);
-        _calculateFinalBPM();
-        
-        Future.delayed(const Duration(milliseconds: 500), () {
-          _showResultDialog();
-        });
-      } else {
-        setState(() => secondsLeft--);
+        return;
+      }
+      
+      setState(() => secondsLeft--);
+      
+      if (secondsLeft <= 0) {
+        t.cancel();
+        _finishMeasurement();
+      }
+    });
+  }
+
+  // ✅ NUEVO: Finalizar medición de forma segura
+  void _finishMeasurement() {
+    if (!mounted) return;
+    
+    setState(() => measuring = false);
+    _calculateFinalBPM();
+    
+    Future.delayed(const Duration(milliseconds: 500), () {
+      if (mounted) {
+        _showResultDialog();
       }
     });
   }
@@ -205,7 +250,8 @@ class _MedicionFrecuenciaScreenState extends State<MedicionFrecuenciaScreen> {
                   const Text(
                     "• Presiona firmemente el dedo\n"
                     "• Mantén la mano quieta\n"
-                    "• Evita cambios de luz",
+                    "• Evita cambios de luz\n"
+                    "• Medición de 40 segundos para mayor precisión", // ✅ Actualizado
                     style: TextStyle(fontSize: 12),
                   ),
                 ],
@@ -278,20 +324,24 @@ class _MedicionFrecuenciaScreenState extends State<MedicionFrecuenciaScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            if (measuring)
+            if (measuring && _cameraInitialized) // ✅ Solo mostrar cuando la cámara esté lista
               HeartBPMDialog(
                 context: context,
                 onRawData: (value) {
+                  if (!mounted) return;
+                  
                   setState(() {
                     data.add(value);
-                    if (data.length > 100) data.removeAt(0);
+                    // ✅ Limitar datos para evitar sobrecarga
+                    if (data.length > 80) data.removeAt(0);
                   });
                   
                   _analyzeSignalQuality();
                   debugPrint("RAW >> index=${data.length} : y=${value.value}");
-                  debugPrint("Calidad: $signalQuality - Fuerza: ${signalStrength.toStringAsFixed(2)}");
                 },
                 onBPM: (value) {
+                  if (!mounted) return;
+                  
                   if (value > 0 && _isValidBPMReading(value) && isSignalStable) {
                     consecutiveStableReadings++;
                     
@@ -308,6 +358,10 @@ class _MedicionFrecuenciaScreenState extends State<MedicionFrecuenciaScreen> {
                   }
                 },
               ),
+            
+            if (measuring && !_cameraInitialized) // ✅ Mostrar loading mientras inicializa
+              const CircularProgressIndicator(),
+
             const SizedBox(height: 20),
 
             // 🔹 MEJORADO: Gráfico con indicador de calidad
@@ -328,7 +382,8 @@ class _MedicionFrecuenciaScreenState extends State<MedicionFrecuenciaScreen> {
                 color: measuring ? Colors.grey : Colors.white,
               ),
               label: Text(
-                measuring ? "Midiendo... $secondsLeft s" : "Iniciar medición precisa",
+                // ✅ Actualizado a 40 segundos
+                measuring ? "Midiendo... $secondsLeft s" : "Iniciar medición (40 segundos)",
                 style: TextStyle(color: measuring ? Colors.grey : Colors.white),
               ),
               style: ElevatedButton.styleFrom(
@@ -424,7 +479,7 @@ class _MedicionFrecuenciaScreenState extends State<MedicionFrecuenciaScreen> {
             )
           else if (measuring)
             Text(
-              "Analizando señal... $secondsLeft s",
+              "Analizando señal... $secondsLeft s", // ✅ Ahora muestra 40s inicialmente
               style: TextStyle(
                 fontSize: 16,
                 color: Colors.grey[700],
@@ -432,7 +487,7 @@ class _MedicionFrecuenciaScreenState extends State<MedicionFrecuenciaScreen> {
             )
           else
             const Text(
-              "Instrucciones para medición precisa:",
+              "Medición de 40 segundos para mayor precisión", // ✅ Actualizado
               style: TextStyle(fontWeight: FontWeight.bold),
             ),
           
@@ -441,7 +496,7 @@ class _MedicionFrecuenciaScreenState extends State<MedicionFrecuenciaScreen> {
             const Text(
               "• Cubre completamente la cámara con tu dedo\n"
               "• Mantén la mano apoyada y quieta\n"
-              "• Evita hablar o moverte durante la medición\n"
+              "• Evita hablar o moverte durante 40 segundos\n" // ✅ Actualizado
               "• Asegura buena iluminación ambiente",
               textAlign: TextAlign.center,
               style: TextStyle(fontSize: 12),

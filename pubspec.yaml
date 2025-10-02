@@ -44,13 +44,16 @@ dependencies:
   # Medición BPM (frecuencia cardíaca)
   heart_bpm: ^2.0.0
 
+  # 📅 Calendario
+  table_calendar: ^3.1.2
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^5.0.0
 
 dependency_overrides:
-  vector_math: ^2.2.0   # ✅ Forzamos para que sea compatible con fl_chart 1.1.1
+  vector_math: ^2.2.0   
 
 flutter:
   uses-material-design: true
@@ -58,5 +61,6 @@ flutter:
     - assets/images/full.png
     - assets/images/pecho.png
     - assets/images/musculos.png
+    - assets/images/healthu_logo.png
     - assets/images/badge.png
     - assets/animations/

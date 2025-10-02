@@ -44,13 +44,6 @@ final List<Desafio> desafiosBase = [
   Desafio(id: '6', nombre: 'Desafio 6', desbloqueado: false, completado: false),
   Desafio(id: '7', nombre: 'Desafio 7', desbloqueado: false, completado: false),
   Desafio(id: '8', nombre: 'Desafio 8', desbloqueado: false, completado: false),
-  Desafio(id: '9', nombre: 'Desafio 9', desbloqueado: false, completado: false),
-  Desafio(id: '10', nombre: 'Desafio 10', desbloqueado: false, completado: false),
-  Desafio(id: '11', nombre: 'Desafio 11', desbloqueado: false, completado: false),
-  Desafio(id: '12', nombre: 'Desafio 12', desbloqueado: false, completado: false),
-  Desafio(id: '13', nombre: 'Desafio 13', desbloqueado: false, completado: false),
-  Desafio(id: '14', nombre: 'Desafio 14', desbloqueado: false, completado: false),
-  Desafio(id: '15', nombre: 'Desafio 15', desbloqueado: false, completado: false),
 ];
 
 

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:healthu/services/desafio_service.dart';
 
-///  Pantalla para ver estadísticas detalladas de rutinas completadas
 class ProgresoEstadisticasScreen extends StatefulWidget {
   const ProgresoEstadisticasScreen({super.key});
 
@@ -36,26 +36,82 @@ class _ProgresoEstadisticasScreenState extends State<ProgresoEstadisticasScreen>
         _error = null;
       });
 
-      // Simular carga de estadísticas (reemplazar con llamada real al backend)
-      await Future.delayed(const Duration(seconds: 1));
+      // 🔹 Obtener lista de desafíos (rutinas realizadas)
+      final listaDesafios = await DesafioService.obtenerDesafiosPorUsuario();
 
-      // Datos simulados - reemplazar con datos reales del backend
+      // 🔹 Filtrar solo finalizados
+      final rutinasCompletadas = listaDesafios
+          .where((d) =>
+              (d['estado'] ?? '').toString().toLowerCase() == 'finalizado')
+          .toList();
+
+      // 📅 Semana actual (lunes a domingo)
+      DateTime now = DateTime.now();
+      DateTime lunes = now.subtract(Duration(days: now.weekday - 1));
+      DateTime domingo = lunes.add(const Duration(days: 6));
+
+      // 🔹 Filtrar rutinas solo dentro de la semana actual
+      final rutinasSemana = rutinasCompletadas.where((r) {
+        final fechaRaw = r['fechaFinDesafio'];
+        if (fechaRaw == null) return false;
+        final fecha = DateTime.tryParse(fechaRaw);
+        if (fecha == null) return false;
+        return fecha.isAfter(lunes.subtract(const Duration(days: 1))) &&
+            fecha.isBefore(domingo.add(const Duration(days: 1)));
+      }).toList();
+
+      final totalRutinas = rutinasSemana.length;
+
+      // 🔹 Agrupar por día de la semana (L-D)
+      final Map<int, int> conteoPorDia = {
+        1: 0,
+        2: 0,
+        3: 0,
+        4: 0,
+        5: 0,
+        6: 0,
+        7: 0,
+      };
+
+      for (var rutina in rutinasSemana) {
+        final fechaRaw = rutina['fechaFinDesafio'];
+        if (fechaRaw != null) {
+          final fecha = DateTime.tryParse(fechaRaw);
+          if (fecha != null) {
+            conteoPorDia[fecha.weekday] =
+                (conteoPorDia[fecha.weekday] ?? 0) + 1;
+          }
+        }
+      }
+
+      // Pasar los datos a la vista
+      final semanaActual = [
+        conteoPorDia[1] ?? 0,
+        conteoPorDia[2] ?? 0,
+        conteoPorDia[3] ?? 0,
+        conteoPorDia[4] ?? 0,
+        conteoPorDia[5] ?? 0,
+        conteoPorDia[6] ?? 0,
+        conteoPorDia[7] ?? 0,
+      ];
+
+      // 🔹 Totales del usuario
+      final totales = await DesafioService.obtenerTotalesUsuario();
+
       final estadisticas = {
-        'rutinasCompletadas': 15,
-        'rutinasEnProgreso': 3,
-        'desafiosCompletados': 5,
-        'puntosTotal': 1250,
-        'diasActivo': 28,
-        'rachaActual': 7,
-        'promedioSemanal': 4.2,
-        'tiempoTotal': 420, // minutos
-        'semanaPasada': [1, 3, 2, 4, 2, 1, 3],
-        'mesActual': [
-          {'semana': 1, 'rutinas': 5},
-          {'semana': 2, 'rutinas': 8},
-          {'semana': 3, 'rutinas': 6},
-          {'semana': 4, 'rutinas': 12},
-        ],
+        'rutinasCompletadas': totalRutinas,
+        'semanaActual': semanaActual,
+        'diasSemana': List.generate(7, (i) {
+          final fecha = lunes.add(Duration(days: i));
+          final nombres = ['L', 'M', 'X', 'J', 'V', 'S', 'D'];
+          return "${nombres[i]}\n${fecha.day}";
+        }),
+        'desafiosEnProgreso': listaDesafios
+            .where((d) =>
+                (d['estado'] ?? '').toString().toLowerCase() == 'en progreso')
+            .length,
+        'desafiosCompletados': rutinasCompletadas.length,
+        'puntosTotal': (totales['puntos'] ?? 0).toInt(),
       };
 
       setState(() {
@@ -96,19 +152,18 @@ class _ProgresoEstadisticasScreenState extends State<ProgresoEstadisticasScreen>
           ],
         ),
       ),
-      body:
-          _cargando
-              ? const Center(child: CircularProgressIndicator())
-              : _error != null
+      body: _cargando
+          ? const Center(child: CircularProgressIndicator())
+          : _error != null
               ? _buildErrorView()
               : TabBarView(
-                controller: _tabController,
-                children: [
-                  _buildResumenTab(),
-                  _buildGraficasTab(),
-                  _buildLogrosTab(),
-                ],
-              ),
+                  controller: _tabController,
+                  children: [
+                    _buildResumenTab(),
+                    _buildGraficasTab(),
+                    _buildLogrosTab(),
+                  ],
+                ),
     );
   }
 
@@ -151,8 +206,6 @@ class _ProgresoEstadisticasScreenState extends State<ProgresoEstadisticasScreen>
             style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 16),
-
-          // Grid de estadísticas principales
           GridView.count(
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
@@ -168,8 +221,8 @@ class _ProgresoEstadisticasScreenState extends State<ProgresoEstadisticasScreen>
                 Colors.green,
               ),
               _buildStatCard(
-                'En Progreso',
-                '${stats['rutinasEnProgreso']}',
+                'Desafíos en Progreso',
+                '${stats['desafiosEnProgreso']}',
                 Icons.play_circle_filled,
                 Colors.orange,
               ),
@@ -187,45 +240,6 @@ class _ProgresoEstadisticasScreenState extends State<ProgresoEstadisticasScreen>
               ),
             ],
           ),
-
-          const SizedBox(height: 24),
-
-          // Información adicional
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    '🔥 Racha y Consistencia',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                  ),
-                  const SizedBox(height: 12),
-                  _buildProgressRow(
-                    'Racha actual',
-                    '${stats['rachaActual']} días',
-                    Colors.orange,
-                  ),
-                  _buildProgressRow(
-                    'Días activo este mes',
-                    '${stats['diasActivo']} días',
-                    Colors.blue,
-                  ),
-                  _buildProgressRow(
-                    'Promedio semanal',
-                    '${stats['promedioSemanal']} rutinas',
-                    Colors.green,
-                  ),
-                  _buildProgressRow(
-                    'Tiempo total',
-                    '${(stats['tiempoTotal'] / 60).toStringAsFixed(1)} horas',
-                    Colors.indigo,
-                  ),
-                ],
-              ),
-            ),
-          ),
         ],
       ),
     );
@@ -233,9 +247,9 @@ class _ProgresoEstadisticasScreenState extends State<ProgresoEstadisticasScreen>
 
   Widget _buildGraficasTab() {
     final stats = _estadisticas!;
-    final semanaPasada = List<double>.from(
-      stats['semanaPasada'].map((x) => x.toDouble()),
-    );
+    final semanaActual =
+        List<int>.from(stats['semanaActual'].map((x) => x.toInt()));
+    final diasSemana = List<String>.from(stats['diasSemana']);
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
@@ -247,71 +261,20 @@ class _ProgresoEstadisticasScreenState extends State<ProgresoEstadisticasScreen>
             style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 16),
-
           Card(
             child: Padding(
               padding: const EdgeInsets.all(16),
               child: Column(
                 children: [
-                  const Text('Rutinas por día (última semana)'),
+                  const Text('Rutinas por día (semana actual)'),
                   const SizedBox(height: 16),
                   SizedBox(
-                    height: 200,
-                    child: _buildSimpleBarChart(semanaPasada),
+                    height: 220,
+                    child: _buildSimpleBarChart(
+                      semanaActual.map((e) => e.toDouble()).toList(),
+                      diasSemana,
+                    ),
                   ),
-                ],
-              ),
-            ),
-          ),
-
-          const SizedBox(height: 24),
-
-          const Text(
-            '📅 Progreso Mensual',
-            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 16),
-
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                children: [
-                  const Text('Rutinas por semana (este mes)'),
-                  const SizedBox(height: 16),
-                  ...List.generate(4, (index) {
-                    final semana = stats['mesActual'][index];
-                    final progreso = (semana['rutinas'] / 15.0).clamp(0.0, 1.0);
-                    return Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 8),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text('Semana ${semana['semana']}'),
-                          const SizedBox(height: 4),
-                          LinearProgressIndicator(
-                            value: progreso,
-                            backgroundColor: Colors.grey[300],
-                            valueColor: AlwaysStoppedAnimation<Color>(
-                              progreso > 0.8
-                                  ? Colors.green
-                                  : progreso > 0.5
-                                  ? Colors.orange
-                                  : Colors.red,
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            '${semana['rutinas']} rutinas completadas',
-                            style: const TextStyle(
-                              fontSize: 12,
-                              color: Colors.grey,
-                            ),
-                          ),
-                        ],
-                      ),
-                    );
-                  }),
                 ],
               ),
             ),
@@ -322,63 +285,13 @@ class _ProgresoEstadisticasScreenState extends State<ProgresoEstadisticasScreen>
   }
 
   Widget _buildLogrosTab() {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            '🏆 Logros Desbloqueados',
-            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 16),
-
-          _buildLogroCard(
-            'Primera Rutina',
-            'Completaste tu primera rutina',
-            Icons.baby_changing_station,
-            Colors.green,
-            true,
-          ),
-          _buildLogroCard(
-            'Racha de 7 días',
-            'Mantuviste una racha de 7 días consecutivos',
-            Icons.local_fire_department,
-            Colors.orange,
-            true,
-          ),
-          _buildLogroCard(
-            'Madrugador',
-            'Completaste 5 rutinas antes de las 8 AM',
-            Icons.wb_sunny,
-            Colors.amber,
-            true,
-          ),
-          _buildLogroCard(
-            '100 Rutinas',
-            'Alcanza 100 rutinas completadas',
-            Icons.emoji_events,
-            Colors.purple,
-            false,
-          ),
-          _buildLogroCard(
-            'Racha de 30 días',
-            'Mantén una racha de 30 días consecutivos',
-            Icons.whatshot,
-            Colors.red,
-            false,
-          ),
-        ],
-      ),
+    return const Center(
+      child: Text("🏆 Próximamente logros dinámicos"),
     );
   }
 
   Widget _buildStatCard(
-    String title,
-    String value,
-    IconData icon,
-    Color color,
-  ) {
+      String title, String value, IconData icon, Color color) {
     return Card(
       elevation: 4,
       child: Padding(
@@ -408,31 +321,12 @@ class _ProgresoEstadisticasScreenState extends State<ProgresoEstadisticasScreen>
     );
   }
 
-  Widget _buildProgressRow(String label, String value, Color color) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(label),
-          Text(
-            value,
-            style: TextStyle(fontWeight: FontWeight.bold, color: color),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildSimpleBarChart(List<double> data) {
-    final dias = ['L', 'M', 'X', 'J', 'V', 'S', 'D'];
-
+  Widget _buildSimpleBarChart(List<double> data, List<String> diasLabels) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
       crossAxisAlignment: CrossAxisAlignment.end,
       children: List.generate(data.length, (index) {
-        final height =
-            (data[index] * 30) + 20; // Min height 20, max height based on data
+        final height = (data[index] * 30) + 20;
         return Column(
           mainAxisAlignment: MainAxisAlignment.end,
           children: [
@@ -447,43 +341,10 @@ class _ProgresoEstadisticasScreenState extends State<ProgresoEstadisticasScreen>
               ),
             ),
             const SizedBox(height: 8),
-            Text(dias[index]),
+            Text(diasLabels[index], textAlign: TextAlign.center),
           ],
         );
       }),
-    );
-  }
-
-  Widget _buildLogroCard(
-    String title,
-    String description,
-    IconData icon,
-    Color color,
-    bool desbloqueado,
-  ) {
-    return Card(
-      margin: const EdgeInsets.only(bottom: 12),
-      child: ListTile(
-        leading: CircleAvatar(
-          backgroundColor: desbloqueado ? color : Colors.grey,
-          child: Icon(icon, color: Colors.white),
-        ),
-        title: Text(
-          title,
-          style: TextStyle(
-            fontWeight: FontWeight.bold,
-            color: desbloqueado ? Colors.black : Colors.grey,
-          ),
-        ),
-        subtitle: Text(
-          description,
-          style: TextStyle(color: desbloqueado ? Colors.black87 : Colors.grey),
-        ),
-        trailing:
-            desbloqueado
-                ? const Icon(Icons.check_circle, color: Colors.green)
-                : const Icon(Icons.lock, color: Colors.grey),
-      ),
     );
   }
 }

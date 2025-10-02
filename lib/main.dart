@@ -87,12 +87,15 @@ class HealthuApp extends StatelessWidget {
     final payload = utf8.decode(base64Url.decode(base64.normalize(parts[1])));
     final data = json.decode(payload);
 
-    return Usuario(
-  id: data['id_usuario'].toString(),
+ return Usuario(
+  id: data['id_usuario'] is int
+      ? data['id_usuario']
+      : int.tryParse(data['id_usuario'].toString()) ?? 0,
   nombre: data['nombre_usuario'] ?? 'Usuario',
   email: data['sub'],
-  fotoUrl: data['foto'] ?? '', 
-  nivelActual: data['rol'] ?? 'Aprendiz',
+  fotoUrl: data['foto'] ?? '',
+  nivelActual: data['nivelActual'] ?? 'Principiante',
 );
+
   }
 }

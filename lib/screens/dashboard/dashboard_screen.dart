@@ -11,7 +11,7 @@ import '../../widgets/notificaciones_widget.dart';
 import 'ficha_identificacion.dart';
 import 'tarjetas_dashboard.dart';
 import '../graficas/graficas_dashboard.dart';
-import '../graficas/grafica_anillo.dart'; 
+import '../graficas/grafica_anillo.dart';
 import '../editar usuario/editar_usuario_screen.dart';
 import '../rutinas/rutina_asignada_screen.dart';
 import 'package:healthu/services/rutina_service.dart';
@@ -20,7 +20,6 @@ import '../rutinas/rutina_plan_tabs_screen.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../../widgets/grafica_barras_calorias.dart';
 import 'package:healthu/services/desafio_service.dart';
-
 
 class DashboardScreen extends StatefulWidget {
   final Usuario usuario;
@@ -35,10 +34,61 @@ class _DashboardScreenState extends State<DashboardScreen> {
   bool _cargandoAsignacion = false;
   bool _generando = false;
 
+  late Future<List<CardDataModel>> _tarjetasFuture;
+
   @override
   void initState() {
     super.initState();
     usuario = widget.usuario;
+    _tarjetasFuture = _cargarTarjetas();
+    _actualizarNivel(); // 🔹 refrescar nivel automáticamente al entrar
+  }
+
+  //  Refrescar nivel actual desde backend
+Future<void> _actualizarNivel() async {
+  try {
+    final rutina = await RutinaService.obtenerRutinaPorAprendiz(usuario.id);
+    if (rutina != null) {
+      setState(() {
+        usuario = usuario.copyWith(nivelActual: rutina.nivel); // ✅ ahora sí nivel real
+        _tarjetasFuture = _cargarTarjetas();
+      });
+    }
+  } catch (e) {
+    debugPrint("❌ Error al actualizar nivel: $e");
+  }
+}
+  // 🔹 Lógica para cargar las tarjetas con datos reales
+  Future<List<CardDataModel>> _cargarTarjetas() async {
+    final totales = await DesafioService.obtenerTotalesUsuario();
+    final lista = await DesafioService.obtenerDesafiosPorUsuario();
+
+    // 1. Puntos totales
+    final puntosTotales = totales['puntos'] ?? 0;
+
+    // 2. Desafíos completados
+    final completados = lista
+        .where((d) => (d['estado'] ?? '').toString().toLowerCase() == 'finalizado')
+        .length;
+
+    // 3. Promedio diario (solo día actual)
+    final hoy = DateFormat('yyyy-MM-dd').format(DateTime.now());
+    final hoyCount = lista.where((d) {
+      final fecha = d['fechaFinDesafio'] ?? d['fechaInicioDesafio'];
+      if (fecha == null) return false;
+      final fechaNormalizada = fecha.toString().substring(0, 10);
+      return fechaNormalizada == hoy;
+    }).length;
+
+    // 4. Nivel actual del usuario
+    final nivel = usuario.nivelActual;
+
+    return [
+      CardDataModel(title: 'Puntos totales', value: '$puntosTotales', icon: Icons.star),
+      CardDataModel(title: 'Desafíos completados', value: '$completados', icon: Icons.fitness_center),
+      CardDataModel(title: 'Promedio diario', value: '$hoyCount', icon: Icons.bar_chart),
+      CardDataModel(title: 'Nivel actual', value: nivel, icon: Icons.trending_up),
+    ];
   }
 
   void _showSnack(String msg, {Color? bg, IconData? icon}) {
@@ -262,12 +312,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
         DateFormat('EEEE d MMMM', 'es').format(DateTime.now()).toString();
 
     final datosSemana = <double>[2, 3, 1, 4, 5, 2, 0];
-    final tarjetas = <CardDataModel>[
-      CardDataModel(title: 'Puntos totales', value: '1 200', icon: Icons.star),
-      CardDataModel(title: 'Desafíos completados', value: '45', icon: Icons.fitness_center),
-      CardDataModel(title: 'Promedio diario', value: '3', icon: Icons.bar_chart),
-      CardDataModel(title: 'Nivel actual', value: 'Avanzado', icon: Icons.trending_up),
-    ];
 
     return Scaffold(
       appBar: AppBar(
@@ -324,87 +368,103 @@ class _DashboardScreenState extends State<DashboardScreen> {
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
-        child: ListView(
-          children: [
-            FichaIdentificacion(usuario: usuario),
-            const SizedBox(height: 12),
-            Center(
-              child: Text('Bienvenido, ${usuario.nombre.split(' ').first}',
-                  style: const TextStyle(
-                      fontSize: 20, fontWeight: FontWeight.w600)),
-            ),
-            Center(
-                child: Text(fechaHoy,
-                    style: const TextStyle(fontSize: 14, color: Colors.grey))),
-            const SizedBox(height: 8),
-            Center(
-              child: Text(_obtenerSaludo(),
-                  style: const TextStyle(
-                      fontSize: 14,
-                      fontStyle: FontStyle.italic,
-                      color: Colors.green)),
-            ),
-            const SizedBox(height: 16),
-            Center(
-              child: ElevatedButton.icon(
-                onPressed: _cargandoAsignacion ? null : _consultarAsignacion,
-                icon: _cargandoAsignacion
-                    ? const SizedBox(
-                        width: 18,
-                        height: 18,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : const Icon(Icons.assignment_outlined),
-                label: const Text('Ver rutina asignada'),
-                style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
+        child: RefreshIndicator(
+          onRefresh: _actualizarNivel, // 🔄 actualizar al hacer swipe down
+          child: ListView(
+            children: [
+              FichaIdentificacion(usuario: usuario),
+              const SizedBox(height: 12),
+              Center(
+                child: Text('Bienvenido, ${usuario.nombre.split(' ').first}',
+                    style: const TextStyle(
+                        fontSize: 20, fontWeight: FontWeight.w600)),
               ),
-            ),
-            const SizedBox(height: 24),
-            const ProgresoDesafiosCard(),
-            const SizedBox(height: 24),
-            TarjetasDashboard(items: tarjetas),
-            const SizedBox(height: 32),
-            const TextoSeccion('Progreso de Nivel'),
-            const BarraProgreso(),
-            const SizedBox(height: 32),
-            const TextoSeccion('Progreso semanal de desafíos'),
-            const SizedBox(height: 16),
-            GraficaBarras(valores: datosSemana),
-            const SizedBox(height: 32),
+              Center(
+                  child: Text(fechaHoy,
+                      style: const TextStyle(fontSize: 14, color: Colors.grey))),
+              const SizedBox(height: 8),
+              Center(
+                child: Text(_obtenerSaludo(),
+                    style: const TextStyle(
+                        fontSize: 14,
+                        fontStyle: FontStyle.italic,
+                        color: Colors.green)),
+              ),
+              const SizedBox(height: 16),
+              Center(
+                child: ElevatedButton.icon(
+                  onPressed: _cargandoAsignacion ? null : _consultarAsignacion,
+                  icon: _cargandoAsignacion
+                      ? const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Icon(Icons.assignment_outlined),
+                  label: const Text('Ver rutina asignada'),
+                  style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
+                ),
+              ),
+              const SizedBox(height: 24),
+              const ProgresoDesafiosCard(),
+              const SizedBox(height: 24),
 
-            // 🔹 Gráfica circular encapsulada
-            const TextoSeccion('Desafíos Finalizados vs En Progreso'),
-            const SizedBox(height: 16),
-            const GraficaDesafios(), // 👈 aquí quedó todo limpio
+              // 🔹 Tarjetas dinámicas
+              FutureBuilder<List<CardDataModel>>(
+                future: _tarjetasFuture,
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return const Center(child: CircularProgressIndicator());
+                  }
+                  if (snapshot.hasError) {
+                    return Text("Error: ${snapshot.error}");
+                  }
+                  if (!snapshot.hasData) {
+                    return const Text("No hay datos disponibles");
+                  }
+                  return TarjetasDashboard(items: snapshot.data!);
+                },
+              ),
 
-            const SizedBox(height: 32),
-            const TextoSeccion('Calorías quemadas por día'),
-            const SizedBox(height: 16),
-            FutureBuilder<Map<String, double>>(
-              future: DesafioService.obtenerCaloriasQuemadasPorDia(),
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(child: CircularProgressIndicator());
-                }
-                if (snapshot.hasError) {
-                  return Text("Error: ${snapshot.error}");
-                }
-                if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                  return const Text("No hay datos disponibles");
-                }
+              const SizedBox(height: 32),
+              const TextoSeccion('Progreso de Nivel'),
+              const BarraProgreso(),
+              const SizedBox(height: 32),
+              const TextoSeccion('Progreso semanal de desafíos'),
+              const SizedBox(height: 16),
+              GraficaBarras(valores: datosSemana),
+              const SizedBox(height: 32),
+              const TextoSeccion('Desafíos Finalizados vs En Progreso'),
+              const SizedBox(height: 16),
+              const GraficaDesafios(),
+              const SizedBox(height: 32),
+              const TextoSeccion('Calorías quemadas por día'),
+              const SizedBox(height: 16),
+              FutureBuilder<Map<String, double>>(
+                future: DesafioService.obtenerCaloriasQuemadasPorDia(),
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return const Center(child: CircularProgressIndicator());
+                  }
+                  if (snapshot.hasError) {
+                    return Text("Error: ${snapshot.error}");
+                  }
+                  if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                    return const Text("No hay datos disponibles");
+                  }
+                  return GraficaBarrasCalorias(caloriasPorDia: snapshot.data!);
+                },
+              ),
 
-                return GraficaBarrasCalorias(caloriasPorDia: snapshot.data!);
-              },
-            ),
-
-            const SizedBox(height: 32),
-            const TextoSeccion('Calorías por actividad (semana)'),
-            const SizedBox(height: 16),
-            const GraficaBarrasApiladas(),
-            const SizedBox(height: 32),
-            const TextoSeccion('Comparar variables'),
-            const SelectorDispersion(),
-          ],
+              const SizedBox(height: 32),
+              const TextoSeccion('Calorías por actividad (semana)'),
+              const SizedBox(height: 16),
+              const GraficaBarrasApiladas(),
+              const SizedBox(height: 32),
+              const TextoSeccion('Comparar variables'),
+              const SelectorDispersion(),
+            ],
+          ),
         ),
       ),
     );

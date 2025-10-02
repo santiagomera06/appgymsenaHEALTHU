@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:healthu/services/login_service.dart';
-import 'package:healthu/models/usuario.dart';
+import 'package:healthu/services/usuario_service.dart';
 import 'package:healthu/screens/home inicio/home_screen.dart';
 import 'package:jwt_decoder/jwt_decoder.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -24,6 +24,20 @@ class _LoginState extends State<Login> {
     super.dispose();
   }
 
+  /// 🔹 Mapea la dificultad que viene del backend a un nivel más amigable
+  String _mapNivel(String? dificultad) {
+    switch (dificultad?.toLowerCase()) {
+      case 'principiante':
+        return 'Básico';
+      case 'intermedio':
+        return 'Medio';
+      case 'avanzado':
+        return 'Avanzado';
+      default:
+        return 'Básico';
+    }
+  }
+
   Future<void> _iniciarSesion() async {
     final email = usuarioCtrl.text.trim();
     final contrasena = claveCtrl.text.trim();
@@ -34,32 +48,43 @@ class _LoginState extends State<Login> {
 
     if (token != null) {
       try {
-        // Decodificar el token
+        // ✅ Decodificar token
         Map<String, dynamic> decoded = JwtDecoder.decode(token);
         debugPrint("✅ JWT payload: $decoded");
 
-        // Crear objeto Usuario con lo que viene en el token
-        final usuario = Usuario(
-          id: decoded['id_usuario'].toString(),
-          nombre: decoded['nombre_usuario'] ?? '',
-          email: decoded['sub'] ?? '',
-          fotoUrl: decoded['foto'] ?? '',
-          nivelActual: decoded['rol'] ?? '',
-        );
-
-        // Guardar datos en SharedPreferences
+        // Guardar token y datos mínimos en SharedPreferences
         final prefs = await SharedPreferences.getInstance();
         await prefs.setString('token', token);
-        await prefs.setString('id_usuario', usuario.id);
+        await prefs.setString('id_usuario', decoded['id_usuario'].toString());
         await prefs.setString('id_persona', decoded['id_persona'].toString());
-        await prefs.setString('fotoPerfil', usuario.fotoUrl);
+        await prefs.setString('fotoPerfil', decoded['foto'] ?? '');
+        await prefs.setString('nombre_usuario', decoded['nombre_usuario'] ?? '');
+        await prefs.setString('email', decoded['sub'] ?? '');
 
         if (!mounted) return;
 
-        // 👉 Ir al home usando la ruta definida en main.dart
-        Navigator.pushReplacementNamed(context, '/home');
+        // 🔹 Llamamos al endpoint /rutina/porAprendiz para traer nivel real
+        final usuario = await UsuarioService.obtenerUsuarioConNivel();
+
+        if (usuario != null) {
+          // Mapear dificultad a nivel actual
+          final nivelMapped = _mapNivel(usuario.nivelActual);
+          final usuarioConNivel = usuario.copyWith(nivelActual: nivelMapped);
+
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+              builder: (_) =>
+                  HomeScreen(usuario: usuarioConNivel, indiceInicial: 2),
+            ),
+          );
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text("Error al obtener datos del usuario")),
+          );
+        }
       } catch (e, st) {
-        debugPrint(" Error al procesar token: $e");
+        debugPrint("❌ Error al procesar token o nivel: $e");
         debugPrint("StackTrace: $st");
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text("Error al procesar datos de sesión")),
@@ -86,7 +111,12 @@ class _LoginState extends State<Login> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const Icon(Icons.fitness_center, size: 80, color: Colors.green),
+              // 🔹 Aquí reemplazamos el ícono por el logo
+              Image.asset(
+                'assets/images/healthu_logo.png',
+                height: 180,
+                fit: BoxFit.contain,
+              ),
               const SizedBox(height: 20),
               const Text(
                 'Bienvenido a HEALTHU',

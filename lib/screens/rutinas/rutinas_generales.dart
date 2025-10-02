@@ -45,12 +45,12 @@ class _RutinasGeneralesState extends State<RutinasGenerales> {
           MaterialPageRoute(
             builder: (_) => DashboardScreen(
               usuario: Usuario(
-                id: '0',
-                nombre: 'Invitado',
-                email: 'invitado@correo.com',
-                fotoUrl: 'https://via.placeholder.com/150',
-                nivelActual: 'Principiante',
-              ),
+  id: 0,   // ✅ int
+  nombre: 'Invitado',
+  email: 'invitado@correo.com',
+  fotoUrl: 'https://via.placeholder.com/150',
+  nivelActual: 'Principiante',
+),
             ),
           ),
         );

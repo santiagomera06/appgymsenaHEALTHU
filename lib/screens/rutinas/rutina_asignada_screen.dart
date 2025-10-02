@@ -1,6 +1,6 @@
-// lib/screens/rutinas/rutina_asignada_screen.dart
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:table_calendar/table_calendar.dart';
 import 'package:healthu/models/asignacion_rutina.dart';
 import 'package:healthu/services/rutina_service.dart';
 import 'package:healthu/models/rutina_model.dart' as rutina_model;
@@ -17,15 +17,16 @@ class _RutinaAsignadaScreenState extends State<RutinaAsignadaScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tab;
   Future<rutina_model.RutinaDetalle>? _futureRutina;
+  String? _diaSeleccionado; // 
 
   @override
   void initState() {
     super.initState();
     _tab = TabController(length: 4, vsync: this);
     if (widget.asignacion.idRutina != 0) {
-      _futureRutina =
-          RutinaService.obtenerRutina(widget.asignacion.idRutina.toString());
-
+      _futureRutina = RutinaService.obtenerRutina(
+        widget.asignacion.idRutina.toString(),
+      );
     }
   }
 
@@ -40,7 +41,32 @@ class _RutinaAsignadaScreenState extends State<RutinaAsignadaScreen>
 
   List<String> _dias() {
     final raw = widget.asignacion.diasAsignado ?? '';
-    return raw.split(RegExp(r'[,\n]')).map((e) => e.trim()).where((e) => e.isNotEmpty).toList();
+    return raw
+        .split(RegExp(r'[,\n]'))
+        .map((e) => e.trim())
+        .where((e) => e.isNotEmpty)
+        .toList();
+  }
+
+  /// Convierte días asignados en weekday numbers (ej: lunes=1, martes=2)
+  List<int> _diasAsignadosWeekdays() {
+    final diasSemana = {
+      'lunes': DateTime.monday,
+      'martes': DateTime.tuesday,
+      'miércoles': DateTime.wednesday,
+      'miercoles': DateTime.wednesday,
+      'jueves': DateTime.thursday,
+      'viernes': DateTime.friday,
+      'sábado': DateTime.saturday,
+      'sabado': DateTime.saturday,
+      'domingo': DateTime.sunday,
+    };
+
+    final dias = _dias();
+    return dias
+        .map((d) => diasSemana[d.toLowerCase()])
+        .whereType<int>()
+        .toList();
   }
 
   @override
@@ -76,17 +102,24 @@ class _RutinaAsignadaScreenState extends State<RutinaAsignadaScreen>
               const SizedBox(height: 12),
               Card(
                 elevation: 0,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
                 color: Colors.green.withValues(alpha: 0.08),
                 child: const Padding(
                   padding: EdgeInsets.all(16),
-                  child: Row(children: [
-                    Icon(Icons.check_circle_outline, size: 36),
-                    SizedBox(width: 12),
-                    Expanded(
-                      child: Text('Rutina activa', style: TextStyle(fontWeight: FontWeight.w600)),
-                    ),
-                  ]),
+                  child: Row(
+                    children: [
+                      Icon(Icons.check_circle_outline, size: 36),
+                      SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          'Rutina activa',
+                          style: TextStyle(fontWeight: FontWeight.w600),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
               const SizedBox(height: 8),
@@ -94,7 +127,7 @@ class _RutinaAsignadaScreenState extends State<RutinaAsignadaScreen>
             ],
           ),
 
-          // -------- Ejercicios (desde /rutina/obtenerRutina/{id}) --------
+          // -------- Ejercicios --------
           _futureRutina == null
               ? _vacio('No se configuró la carga de ejercicios (idRutina=0).')
               : FutureBuilder<rutina_model.RutinaDetalle>(
@@ -106,26 +139,44 @@ class _RutinaAsignadaScreenState extends State<RutinaAsignadaScreen>
                     if (snap.hasError) {
                       const hint =
                           'Verifica: GET /rutina/obtenerRutina/{id} (debe traer "ejercicios").';
-                      return _error('No se pudieron cargar los ejercicios.\n\n$hint\n\n${snap.error}');
+                      return _error(
+                        'No se pudieron cargar los ejercicios.\n\n$hint\n\n${snap.error}',
+                      );
                     }
                     final items = snap.data!.ejercicios;
-                    return items.isEmpty
-                        ? _vacio('Esta rutina no tiene ejercicios.')
-                        : _listaEjercicios(items);
+                    if (items.isEmpty) {
+                      return _vacio('Esta rutina no tiene ejercicios.');
+                    }
+
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        if (_diaSeleccionado != null)
+                          Padding(
+                            padding: const EdgeInsets.all(16.0),
+                            child: Text(
+                              'Ejercicios para el día $_diaSeleccionado',
+                              style: const TextStyle(
+                                  fontSize: 18, fontWeight: FontWeight.bold),
+                            ),
+                          ),
+                        Expanded(child: _listaEjercicios(items)),
+                      ],
+                    );
                   },
                 ),
 
-          // -------- Días (pestañas por día) --------
-          _buildDiasTabs(),
+          
+          _buildDiasCalendar(),
 
-          // -------- Observaciones --------
+          
           _observaciones(a.observaciones),
         ],
       ),
     );
   }
 
-  // ---------- Widgets auxiliares ----------
+
   Widget _tile(String t, String v) => ListTile(
         dense: true,
         leading: const Icon(Icons.chevron_right),
@@ -136,27 +187,34 @@ class _RutinaAsignadaScreenState extends State<RutinaAsignadaScreen>
   Widget _vacio(String msg) => Center(
         child: Padding(
           padding: const EdgeInsets.all(24),
-          child: Text(msg, textAlign: TextAlign.center, style: const TextStyle(color: Colors.grey)),
+          child: Text(
+            msg,
+            textAlign: TextAlign.center,
+            style: const TextStyle(color: Colors.grey),
+          ),
         ),
       );
 
   Widget _error(String msg) => Padding(
         padding: const EdgeInsets.all(24),
-        child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-          const Icon(Icons.error_outline, size: 42, color: Colors.redAccent),
-          const SizedBox(height: 12),
-          Text(msg, textAlign: TextAlign.center),
-          const SizedBox(height: 12),
-          FilledButton.icon(
-            onPressed: () => setState(() {}),
-            icon: const Icon(Icons.refresh),
-            label: const Text('Reintentar'),
-          ),
-        ]),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.error_outline, size: 42, color: Colors.redAccent),
+            const SizedBox(height: 12),
+            Text(msg, textAlign: TextAlign.center),
+            const SizedBox(height: 12),
+            FilledButton.icon(
+              onPressed: () => setState(() {}),
+              icon: const Icon(Icons.refresh),
+              label: const Text('Reintentar'),
+            ),
+          ],
+        ),
       );
 
   Widget _listaEjercicios(List<rutina_model.EjercicioRutina> items) {
-    Text _kv(String k, String v) => Text('$k: $v');
+    Text kv(String k, String v) => Text('$k: $v');
     return ListView.separated(
       padding: const EdgeInsets.all(16),
       itemCount: items.length,
@@ -164,20 +222,27 @@ class _RutinaAsignadaScreenState extends State<RutinaAsignadaScreen>
       itemBuilder: (_, i) {
         final e = items[i];
         return Card(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
           child: ListTile(
             contentPadding: const EdgeInsets.all(16),
             leading: const CircleAvatar(child: Icon(Icons.fitness_center)),
-            title: Text(e.nombre, style: const TextStyle(fontWeight: FontWeight.w700)),
+            title: Text(
+              e.nombre,
+              style: const TextStyle(fontWeight: FontWeight.w700),
+            ),
             subtitle: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const SizedBox(height: 6),
                 if ((e.descripcion ?? '').isNotEmpty) Text(e.descripcion!),
-                _kv('Series', '${e.series ?? '-'}'),
-                _kv('Reps', '${e.repeticiones ?? '-'}'),
-                if (e.pesoRecomendado != null) _kv('Carga', '${e.pesoRecomendado}'),
-                if (e.duracionEstimada != null) _kv('Duración', '${e.duracionEstimada}'),
+                kv('Series', '${e.series ?? '-'}'),
+                kv('Reps', '${e.repeticiones ?? '-'}'),
+                if (e.pesoRecomendado != null)
+                  kv('Carga', '${e.pesoRecomendado}'),
+                if (e.duracionEstimada != null)
+                  kv('Duración', '${e.duracionEstimada}'),
                 if (e.completado == true)
                   const Padding(
                     padding: EdgeInsets.only(top: 4),
@@ -192,56 +257,71 @@ class _RutinaAsignadaScreenState extends State<RutinaAsignadaScreen>
     );
   }
 
-  /// Pestañas por día: por ahora muestra todos los ejercicios en cada día.
-  Widget _buildDiasTabs() {
-    final dias = _dias();
-    if (dias.isEmpty) return _vacio('Sin días asignados.');
+  /// Calendario con solo días asignados
+  Widget _buildDiasCalendar() {
+    final diasAsignadosWeekdays = _diasAsignadosWeekdays();
 
-    return FutureBuilder<rutina_model.RutinaDetalle>(
-      future: _futureRutina,
-      builder: (context, snap) {
-        final ejercicios =
-            snap.hasData ? snap.data!.ejercicios : <rutina_model.EjercicioRutina>[];
-        return DefaultTabController(
-          length: dias.length,
-          child: Column(
-            children: [
-              Material(
-                color: Colors.transparent,
-                child: TabBar(isScrollable: true, tabs: dias.map((d) => Tab(text: d)).toList()),
+    final firstDay = widget.asignacion.fechaAsignacion ?? DateTime.now();
+    final lastDay =
+        widget.asignacion.fechaFinalizacion ??
+        DateTime.now().add(const Duration(days: 30));
+
+    DateTime focused = DateTime.now();
+    if (focused.isAfter(lastDay)) focused = lastDay;
+    if (focused.isBefore(firstDay)) focused = firstDay;
+
+    return TableCalendar(
+      locale: 'es_ES',
+      firstDay: firstDay,
+      lastDay: lastDay,
+      focusedDay: focused,
+      calendarFormat: CalendarFormat.month,
+      calendarBuilders: CalendarBuilders(
+        defaultBuilder: (context, day, focusedDay) {
+          if (diasAsignadosWeekdays.contains(day.weekday)) {
+            return Container(
+              margin: const EdgeInsets.all(6),
+              decoration: const BoxDecoration(
+                color: Colors.green,
+                shape: BoxShape.circle,
               ),
-              const Divider(height: 1),
-              Expanded(
-                child: TabBarView(
-                  children: dias.map((_) {
-                    if (!snap.hasData) {
-                      if (snap.connectionState == ConnectionState.waiting) {
-                        return const Center(child: CircularProgressIndicator());
-                      }
-                      if (snap.hasError) {
-                        return _error('Error cargando la rutina:\n${snap.error}');
-                      }
-                    }
-                    return ejercicios.isEmpty
-                        ? _vacio('Sin ejercicios asignados para este día.')
-                        : _listaEjercicios(ejercicios);
-                  }).toList(),
-                ),
+              alignment: Alignment.center,
+              child: Text(
+                '${day.day}',
+                style: const TextStyle(color: Colors.white),
               ),
-            ],
-          ),
-        );
+            );
+          }
+          return null;
+        },
+      ),
+      onDaySelected: (selectedDay, newFocusedDay) {
+        if (diasAsignadosWeekdays.contains(selectedDay.weekday)) {
+          setState(() {
+            _diaSeleccionado =
+                DateFormat.EEEE('es_ES').format(selectedDay); // Día en texto
+            _tab.animateTo(1); // Ir a pestaña Ejercicios
+          });
+        }
       },
     );
   }
 
+  /// Observaciones de la rutina
   Widget _observaciones(String? obs) {
-    final text = (obs == null || obs.trim().isEmpty) ? 'Sin observaciones.' : obs.trim();
+    final text = (obs == null || obs.trim().isEmpty)
+        ? 'Sin observaciones.'
+        : obs.trim();
     return Padding(
       padding: const EdgeInsets.all(16),
       child: Card(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        child: Padding(padding: const EdgeInsets.all(16), child: Text(text)),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Text(text),
+        ),
       ),
     );
   }

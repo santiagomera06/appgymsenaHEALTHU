@@ -461,6 +461,4 @@ static Future<Map<String, double>> obtenerCaloriasQuemadasPorDia() async {
     return {};
   }
 }
-
-
 }

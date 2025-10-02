@@ -41,13 +41,14 @@ class _ValidarInstructorScreenState extends State<ValidarInstructorScreen> {
     final nivelActual = prefs.getString('nivelActual') ?? 'Principiante';
 
     setState(() {
-      _usuario = Usuario(
-        id: '0',
-        nombre: nombre,
-        email: email ?? '',
-        fotoUrl: fotoUrl,
-        nivelActual: nivelActual,
-      );
+_usuario = Usuario(
+  id: 0,   // ✅ int
+  nombre: nombre,
+  email: email ?? '',
+  fotoUrl: fotoUrl,
+  nivelActual: nivelActual,
+);
+
     });
   }
 

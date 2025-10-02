@@ -298,24 +298,6 @@ class _ProgresoDesafiosCardState extends State<ProgresoDesafiosCard> {
         Row(
           children: [
             Expanded(
-              child: ElevatedButton.icon(
-                onPressed: () {
-                  Navigator.pushNamed(context, '/home');
-                },
-                icon: const Icon(Icons.fitness_center),
-                label: const Text('Ver Desafíos'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: colorEstado,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 12),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
               child: OutlinedButton.icon(
                 onPressed: () {
                   Navigator.push(

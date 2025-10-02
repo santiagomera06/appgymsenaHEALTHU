@@ -3,6 +3,8 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:healthu/models/crear_rutina_model.dart' as crear_rutina;
 import 'package:healthu/models/rutina_model.dart' as rutina_model;
+import 'package:flutter/foundation.dart';  // 👈 agrega esto arriba
+
 
 const int timeoutSeconds = 10;
 
@@ -207,67 +209,65 @@ class RutinaService {
     return resp.statusCode == 200;
   }
 
- static Future<Map<String, dynamic>?> validarQR({
-  required String codigoQR,
-  required int idDesafioRealizado,
-}) async {
-  try {
-    final headers = await _headers(withAuth: false);
+  static Future<Map<String, dynamic>?> validarQR({
+    required String codigoQR,
+    required int idDesafioRealizado,
+  }) async {
+    try {
+      final headers = await _headers(withAuth: false);
 
-    final response = await http.post(
-      Uri.parse('$baseUrl/admin/validarQR'),
-      headers: headers,
-      body: json.encode({
-        "codigoQR": codigoQR,
-        "idDesafioRealizado": idDesafioRealizado,
-      }),
-    ).timeout(const Duration(seconds: timeoutSeconds));
+      final response = await http.post(
+        Uri.parse('$baseUrl/admin/validarQR'),
+        headers: headers,
+        body: json.encode({
+          "codigoQR": codigoQR,
+          "idDesafioRealizado": idDesafioRealizado,
+        }),
+      ).timeout(const Duration(seconds: timeoutSeconds));
 
-    if (response.statusCode == 200) {
-      return json.decode(response.body);
-    } else {
-      print('Error: ${response.statusCode} - ${response.body}');
+      if (response.statusCode == 200) {
+        return json.decode(response.body);
+      } else {
+        print('Error: ${response.statusCode} - ${response.body}');
+        return null;
+      }
+    } catch (e) {
+      print('Error al validar QR: $e');
       return null;
     }
-  } catch (e) {
-    print('Error al validar QR: $e');
-    return null;
   }
-}
 
+  static rutina_model.RutinaDetalle _mapearRutinaDesdeApi(Map<String, dynamic> data) {
+    final ejerciciosRaw = (data['ejercicios'] ?? data['practices'] ?? []) as List;
 
- static rutina_model.RutinaDetalle _mapearRutinaDesdeApi(Map<String, dynamic> data) {
-  final ejerciciosRaw = (data['ejercicios'] ?? data['practices'] ?? []) as List;
-
-  // 🔎 Normalización de imagen
-  String? imagen;
-  final foto = data['fotoRutina'] ?? data['imageUrl'] ?? '';
-  if (foto != null && foto.toString().isNotEmpty) {
-    final fotoStr = foto.toString();
-    if (fotoStr.startsWith('http')) {
-      imagen = fotoStr;
-    } else {
-      imagen = 'http://54.227.38.102:8080/uploads/$fotoStr';
+    // 🔎 Normalización de imagen
+    String? imagen;
+    final foto = data['fotoRutina'] ?? data['imageUrl'] ?? '';
+    if (foto != null && foto.toString().isNotEmpty) {
+      final fotoStr = foto.toString();
+      if (fotoStr.startsWith('http')) {
+        imagen = fotoStr;
+      } else {
+        imagen = 'http://54.227.38.102:8080/uploads/$fotoStr';
+      }
     }
+
+    return rutina_model.RutinaDetalle(
+      id: int.tryParse(
+            data['identifier']?.toString() ??
+            data['idRutina']?.toString() ??
+            data['id']?.toString() ??
+            '0',
+          ) ??
+          0,
+      nombre: data['nombre'] ?? data['name'] ?? 'Rutina sin nombre',
+      descripcion: data['descripcion'] ?? data['description'] ?? '',
+      imagenUrl: imagen ?? '',
+      nivel: data['nivel'] ?? data['level'] ?? data['dificultad'] ?? 'Intermedio',
+      completada: data['completada'] ?? data['completed'] ?? false,
+      ejercicios: _mapearEjercicios(ejerciciosRaw),
+    );
   }
-
-  return rutina_model.RutinaDetalle(
-    id: int.tryParse(
-          data['identifier']?.toString() ??
-          data['idRutina']?.toString() ??
-          data['id']?.toString() ??
-          '0',
-        ) ??
-        0,
-    nombre: data['nombre'] ?? data['name'] ?? 'Rutina sin nombre',
-    descripcion: data['descripcion'] ?? data['description'] ?? '',
-    imagenUrl: imagen ?? '',
-    nivel: data['nivel'] ?? data['level'] ?? data['dificultad'] ?? 'Intermedio',
-    completada: data['completada'] ?? data['completed'] ?? false,
-    ejercicios: _mapearEjercicios(ejerciciosRaw),
-  );
-}
-
 
   static List<rutina_model.EjercicioRutina> _mapearEjercicios(List<dynamic> items) {
     int _int(dynamic v, [int def = 0]) => v == null ? def : (v is int ? v : int.tryParse(v.toString()) ?? def);
@@ -320,4 +320,43 @@ class RutinaService {
     }
     throw Exception('Error ${resp.statusCode}: ${resp.body}');
   }
+static Future<rutina_model.RutinaDetalle?> obtenerRutinaPorAprendiz(int idPersona) async {
+  try {
+    // 1️⃣ Traer asignación de rutina del aprendiz
+    final asignacionResp = await http.get(
+      Uri.parse('$baseUrl/asignaciones/rutina/$idPersona'),
+      headers: await _headers(),
+    ).timeout(const Duration(seconds: timeoutSeconds));
+
+    if (asignacionResp.statusCode != 200 || asignacionResp.body.isEmpty) {
+      debugPrint("⚠️ No se encontró asignación para idPersona=$idPersona");
+      return null;
+    }
+
+    final asignacion = json.decode(asignacionResp.body);
+    final idRutina = asignacion['idRutina'];
+    if (idRutina == null) {
+      debugPrint("⚠️ La asignación no tiene idRutina válido");
+      return null;
+    }
+
+    // 2️⃣ Consultar la rutina asignada con idRutina
+    final rutinaResp = await http.get(
+      Uri.parse('$baseUrl/rutina/obtenerRutina/$idRutina'),
+      headers: await _headers(),
+    ).timeout(const Duration(seconds: timeoutSeconds));
+
+    if (rutinaResp.statusCode == 200 && rutinaResp.body.isNotEmpty) {
+      final data = json.decode(rutinaResp.body);
+      return _mapearRutinaDesdeApi(data);
+    } else {
+      debugPrint("⚠️ Error obteniendo rutina asignada: ${rutinaResp.statusCode}");
+      return null;
+    }
+  } catch (e) {
+    debugPrint("❌ Error en obtenerRutinaPorAprendiz: $e");
+    return null;
+  }
+}
+
 }
