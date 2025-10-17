@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
+import 'package:healthu/services/desafio_service.dart';
+import 'dart:async';
+import 'dart:math';
 
 class SelectorDispersion extends StatefulWidget {
   const SelectorDispersion({super.key});
@@ -9,111 +12,197 @@ class SelectorDispersion extends StatefulWidget {
 }
 
 class _SelectorDispersionState extends State<SelectorDispersion> {
-  int _index = 0; 
+  int _index = 0;
+  late Future<List<Map<String, dynamic>>> _futureDesafios;
+  Timer? _timer;
+  bool _actualizando = false;
 
-  final List<double> duraciones = [10, 20, 30, 40, 50];   // min
-  final List<double> calorias   = [50, 120, 200, 280, 350]; // kcal
-  final List<double> pesos      = [60, 70, 80, 90, 100];  // kg
-  final List<double> imc        = [22, 24, 26, 28, 30];   // IMC
-  
+  @override
+  void initState() {
+    super.initState();
+    _cargar();
+    _timer = Timer.periodic(const Duration(seconds: 10), (_) => _cargar());
+  }
+
+  void _cargar() async {
+    if (_actualizando) return;
+    setState(() => _actualizando = true);
+
+    setState(() {
+      _futureDesafios = DesafioService.obtenerDesafiosPorUsuario();
+    });
+
+    await Future.delayed(const Duration(milliseconds: 500));
+    setState(() => _actualizando = false);
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
-    late String titulo;
-    late List<ScatterSpot> spots;
-    late List<_Leyenda> leyendas;
+    return FutureBuilder<List<Map<String, dynamic>>>(
+      future: _futureDesafios,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return Center(child: CircularProgressIndicator());
+        }
+        if (snapshot.hasError) {
+          return Text("Error: ${snapshot.error}");
+        }
+        if (!snapshot.hasData || snapshot.data!.isEmpty) {
+          return Text("No hay datos disponibles para comparar variables");
+        }
 
-    if (_index == 0) {
-      // ── Duración (X,0)  +  Calorías (0,Y) ──
-      titulo = 'Duración-Calorías';
-      spots  = [
-        for (var d in duraciones)
-          ScatterSpot(
-            d,
-            0,
-            dotPainter: FlDotCirclePainter(color: Colors.blue, radius: 6),
-          ),
-        for (var c in calorias)
-          ScatterSpot(
-            0,
-            c,
-            dotPainter: FlDotCirclePainter(color: Colors.orange, radius: 6),
-          ),
-      ];
-      leyendas = const [
-        _Leyenda(color: Colors.blue,   texto: 'Duración (min)'),
-        _Leyenda(color: Colors.orange, texto: 'Calorías (kcal)'),
-      ];
-    } else {
-      // ── Peso (X,0)  +  IMC (0,Y) ──
-      titulo = 'Peso-IMC';
-      spots  = [
-        for (var p in pesos)
-          ScatterSpot(
-            p,
-            0,
-            dotPainter: FlDotCirclePainter(color: Colors.green, radius: 6),
-          ),
-        for (var i in imc)
-          ScatterSpot(
-            0,
-            i,
-            dotPainter: FlDotCirclePainter(color: Colors.yellow, radius: 6),
-          ),
-      ];
-      leyendas = const [
-        _Leyenda(color: Colors.green,  texto: 'Peso (kg)'),
-        _Leyenda(color: Colors.yellow, texto: 'IMC'),
-      ];
-    }
+        final lista = snapshot.data!;
+        final spots = <ScatterSpot>[];
+        final random = Random();
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        // Selector de pestañas
-        SegmentedButton<int>(
-          segments: const [
-            ButtonSegment(value: 0, label: Text('Durac-Cal')),
-            ButtonSegment(value: 1, label: Text('Peso-IMC')),
-          ],
-          selected: {_index},
-          onSelectionChanged: (s) => setState(() => _index = s.first),
-        ),
-        const SizedBox(height: 12),
+        if (_index == 0) {
+          for (final d in lista) {
+            final inicio = d['fechaInicioDesafio'];
+            final fin = d['fechaFinDesafio'];
+            final calorias = (d['caloriasTotales'] ?? 0).toDouble();
+            if (inicio != null && fin != null && calorias > 0) {
+              final start = DateTime.parse(inicio);
+              final end = DateTime.parse(fin);
+              final duracionMin = end.difference(start).inSeconds / 60;
+              if (duracionMin > 0) {
+                spots.add(
+                  ScatterSpot(
+                    duracionMin,
+                    calorias,
+                    dotPainter: FlDotCirclePainter(
+                      color: Colors.orangeAccent,
+                      radius: 6,
+                    ),
+                  ),
+                );
+              }
+            }
+          }
+        } else {
+          for (final d in lista) {
+            final calorias = (d['caloriasTotales'] ?? 0).toDouble();
+            final puntos = (d['puntosObtenidos'] ?? 0).toDouble();
+            if (calorias > 0 && puntos > 0) {
+              spots.add(
+                ScatterSpot(
+                  puntos,
+                  calorias,
+                  dotPainter: FlDotCirclePainter(
+                    color: Colors.tealAccent.shade700,
+                    radius: 6 + random.nextDouble() * 2,
+                  ),
+                ),
+              );
+            }
+          }
+        }
 
-        // Título de la gráfica
-        Center(child: Text(titulo, style: const TextStyle(fontWeight: FontWeight.w600))),
+        if (spots.isEmpty) {
+          return Padding(
+            padding: EdgeInsets.all(8.0),
+            child: Text("No hay suficientes datos con calorías/puntos válidos."),
+          );
+        }
 
-        // Gráfica de dispersión
-        SizedBox(
-          height: 240,
-          child: ScatterChart(
-            ScatterChartData(
-              scatterSpots: spots,
-              gridData:   FlGridData(show: true),
-              borderData: FlBorderData(show: false),
-              titlesData: FlTitlesData(show: true),
-              scatterTouchData: ScatterTouchData(enabled: true),
+        final titulo = _index == 0
+            ? "Duración (min) vs Calorías quemadas"
+            : "Puntos obtenidos vs Calorías quemadas";
+
+        final leyendas = _index == 0
+            ? [_Leyenda(color: Colors.orangeAccent, texto: "Duración vs Calorías")]
+            : [_Leyenda(color: Colors.teal, texto: "Puntos vs Calorías")];
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: SegmentedButton<int>(
+                    segments: const [
+                      ButtonSegment(value: 0, label: Text('Duración-Calorías')),
+                      ButtonSegment(value: 1, label: Text('Puntos-Calorías')),
+                    ],
+                    selected: {_index},
+                    onSelectionChanged: (s) {
+                      setState(() => _index = s.first);
+                      _cargar();
+                    },
+                  ),
+                ),
+                IconButton(
+                  tooltip: 'Actualizar ahora',
+                  onPressed: _actualizando ? null : _cargar,
+                  icon: Icon(
+                    Icons.refresh,
+                    color: _actualizando ? Colors.grey : Colors.blueAccent,
+                  ),
+                ),
+              ],
             ),
-          ),
-        ),
 
-        const SizedBox(height: 8),
+            SizedBox(height: 12), // 🔥 sin const aquí
 
-        // Leyenda con los dos colores activos
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: leyendas
-              .expand((l) => [l, const SizedBox(width: 16)])
-              .toList()
-            ..removeLast(),
-        ),
-      ],
+            Center(
+              child: Text(
+                titulo,
+                style: TextStyle(fontWeight: FontWeight.w600),
+              ),
+            ),
+            SizedBox(height: 8),
+
+            SizedBox(
+              height: 250,
+              child: ScatterChart(
+                ScatterChartData(
+                  scatterSpots: spots,
+                  gridData: FlGridData(show: true),
+                  borderData: FlBorderData(show: true),
+                  titlesData: FlTitlesData(
+                    bottomTitles: AxisTitles(
+                      sideTitles: SideTitles(showTitles: true, interval: 50),
+                    ),
+                    leftTitles: AxisTitles(
+                      sideTitles: SideTitles(showTitles: true, interval: 50),
+                    ),
+                    rightTitles:
+                        AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                    topTitles:
+                        AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                  ),
+                  scatterTouchData: ScatterTouchData(enabled: true),
+                ),
+              ),
+            ),
+
+            SizedBox(height: 10),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: leyendas
+                  .expand((l) => [l, SizedBox(width: 16)])
+                  .toList()
+                ..removeLast(),
+            ),
+            SizedBox(height: 6),
+            Center(
+              child: Text(
+                "Se actualiza automáticamente cada 10 s 🔄",
+                style: TextStyle(fontSize: 11, color: Colors.grey),
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 }
 
-// ---- widget interno para la leyenda -------------------------
 class _Leyenda extends StatelessWidget {
   final Color color;
   final String texto;
@@ -123,10 +212,13 @@ class _Leyenda extends StatelessWidget {
   Widget build(BuildContext context) => Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Container(width: 10, height: 10,
-              decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
-          const SizedBox(width: 4),
-          Text(texto, style: const TextStyle(fontSize: 12)),
+          Container(
+            width: 10,
+            height: 10,
+            decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+          ),
+          SizedBox(width: 4),
+          Text(texto, style: TextStyle(fontSize: 12)),
         ],
       );
 }

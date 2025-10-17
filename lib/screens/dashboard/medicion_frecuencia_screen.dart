@@ -3,6 +3,8 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:heart_bpm/heart_bpm.dart';
 import 'package:fl_chart/fl_chart.dart';
+import 'package:healthu/services/frecuencia_service.dart';
+
 
 class MedicionFrecuenciaScreen extends StatefulWidget {
   const MedicionFrecuenciaScreen({super.key});
@@ -29,14 +31,14 @@ class _MedicionFrecuenciaScreenState extends State<MedicionFrecuenciaScreen> {
   int consecutiveStableReadings = 0;
   int requiredStableReadings = 3;
 
-  // ✅ NUEVO: Método mejorado para iniciar medición
+  // NUEVO: Método mejorado para iniciar medición
   void _startMeasurement() async {
     if (measuring) return;
     
-    // ✅ Resetear estado primero
+    // Resetear estado primero
     setState(() {
       measuring = true;
-      secondsLeft = 40; // ✅ 40 segundos
+      secondsLeft = 40; //  40 segundos
       bpm = null;
       data.clear();
       stableBpmReadings.clear();
@@ -47,14 +49,14 @@ class _MedicionFrecuenciaScreenState extends State<MedicionFrecuenciaScreen> {
       _cameraInitialized = false;
     });
 
-    // ✅ Pequeño delay para permitir que la UI se actualice
+    //  Pequeño delay para permitir que la UI se actualice
     await Future.delayed(const Duration(milliseconds: 100));
 
-    // ✅ Inicializar cámara de forma asíncrona
+    // Inicializar cámara de forma asíncrona
     _initializeCameraAsync();
   }
 
-  // ✅ NUEVO: Inicialización asíncrona de la cámara
+  //  NUEVO: Inicialización asíncrona de la cámara
   void _initializeCameraAsync() {
     Future.delayed(const Duration(milliseconds: 500), () {
       if (!mounted) return;
@@ -64,12 +66,12 @@ class _MedicionFrecuenciaScreenState extends State<MedicionFrecuenciaScreen> {
         signalQuality = 'Buscando señal...';
       });
       
-      // ✅ Iniciar timer después de que la cámara esté lista
+      // Iniciar timer después de que la cámara esté lista
       _startMeasurementTimer();
     });
   }
 
-  // ✅ NUEVO: Timer mejorado para 40 segundos
+  // NUEVO: Timer mejorado para 40 segundos
   void _startMeasurementTimer() {
     _timer?.cancel(); // Cancelar timer previo si existe
     
@@ -88,20 +90,68 @@ class _MedicionFrecuenciaScreenState extends State<MedicionFrecuenciaScreen> {
     });
   }
 
-  // ✅ NUEVO: Finalizar medición de forma segura
-  void _finishMeasurement() {
-    if (!mounted) return;
-    
-    setState(() => measuring = false);
-    _calculateFinalBPM();
-    
-    Future.delayed(const Duration(milliseconds: 500), () {
-      if (mounted) {
-        _showResultDialog();
-      }
-    });
+  // NUEVO: Finalizar medición de forma segura
+void _finishMeasurement() async {
+  if (!mounted) return;
+
+  setState(() => measuring = false);
+  _calculateFinalBPM();
+
+  if (bpm != null) {
+    try {
+      await FrecuenciaService.guardarFrecuenciaCardiaca(bpm!);
+      if (!mounted) return;
+
+      //  Mostrar SnackBar de éxito
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Row(
+            children: const [
+              Icon(Icons.favorite, color: Colors.white),
+              SizedBox(width: 10),
+              Text("Frecuencia cardíaca guardada correctamente"),
+            ],
+          ),
+          backgroundColor: Colors.green,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
+          ),
+          duration: const Duration(seconds: 3),
+        ),
+      );
+
+      debugPrint('✅ Frecuencia ${bpm!} BPM enviada al backend');
+    } catch (e) {
+      debugPrint('⚠️ Error enviando frecuencia: $e');
+
+      // ❌ Mostrar error visual
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Row(
+            children: const [
+              Icon(Icons.error_outline, color: Colors.white),
+              SizedBox(width: 10),
+              Text("Error al guardar la frecuencia cardíaca"),
+            ],
+          ),
+          backgroundColor: Colors.redAccent,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
+          ),
+          duration: const Duration(seconds: 3),
+        ),
+      );
+    }
   }
 
+  Future.delayed(const Duration(milliseconds: 500), () {
+    if (mounted) {
+      _showResultDialog();
+    }
+  });
+}
   // 🔹 NUEVO: Cálculo de BPM final más preciso
   void _calculateFinalBPM() {
     if (stableBpmReadings.isEmpty) {
@@ -479,7 +529,7 @@ class _MedicionFrecuenciaScreenState extends State<MedicionFrecuenciaScreen> {
             )
           else if (measuring)
             Text(
-              "Analizando señal... $secondsLeft s", // ✅ Ahora muestra 40s inicialmente
+              "Analizando señal... $secondsLeft s", //  Ahora muestra 40s inicialmente
               style: TextStyle(
                 fontSize: 16,
                 color: Colors.grey[700],
@@ -487,7 +537,7 @@ class _MedicionFrecuenciaScreenState extends State<MedicionFrecuenciaScreen> {
             )
           else
             const Text(
-              "Medición de 40 segundos para mayor precisión", // ✅ Actualizado
+              "Medición de 40 segundos para mayor precisión", 
               style: TextStyle(fontWeight: FontWeight.bold),
             ),
           
@@ -496,7 +546,7 @@ class _MedicionFrecuenciaScreenState extends State<MedicionFrecuenciaScreen> {
             const Text(
               "• Cubre completamente la cámara con tu dedo\n"
               "• Mantén la mano apoyada y quieta\n"
-              "• Evita hablar o moverte durante 40 segundos\n" // ✅ Actualizado
+              "• Evita hablar o moverte durante 40 segundos\n" 
               "• Asegura buena iluminación ambiente",
               textAlign: TextAlign.center,
               style: TextStyle(fontSize: 12),

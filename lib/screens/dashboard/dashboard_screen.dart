@@ -2,10 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:healthu/models/usuario.dart';
-import 'package:healthu/models/asignacion_rutina.dart';
 import 'package:healthu/services/asignacion_rutina_service.dart';
+import 'package:awesome_dialog/awesome_dialog.dart';
 import '../../widgets/selector_dispersion.dart';
-import '../../widgets/graficas_extra.dart';
 import '../../widgets/progreso_desafios_card.dart';
 import '../../widgets/notificaciones_widget.dart';
 import 'ficha_identificacion.dart';
@@ -20,6 +19,11 @@ import '../rutinas/rutina_plan_tabs_screen.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../../widgets/grafica_barras_calorias.dart';
 import 'package:healthu/services/desafio_service.dart';
+import 'package:healthu/widgets/nivel.dart';
+import 'package:healthu/widgets/grafica_barras_semanal.dart';
+import 'package:healthu/widgets/grafica_barras_apiladas.dart';
+
+
 
 class DashboardScreen extends StatefulWidget {
   final Usuario usuario;
@@ -30,6 +34,7 @@ class DashboardScreen extends StatefulWidget {
 }
 
 class _DashboardScreenState extends State<DashboardScreen> {
+  
   late Usuario usuario;
   bool _cargandoAsignacion = false;
   bool _generando = false;
@@ -41,7 +46,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     super.initState();
     usuario = widget.usuario;
     _tarjetasFuture = _cargarTarjetas();
-    _actualizarNivel(); // 🔹 refrescar nivel automáticamente al entrar
+    _actualizarNivel(); //  refrescar nivel automáticamente al entrar
   }
 
   //  Refrescar nivel actual desde backend
@@ -50,46 +55,41 @@ Future<void> _actualizarNivel() async {
     final rutina = await RutinaService.obtenerRutinaPorAprendiz(usuario.id);
     if (rutina != null) {
       setState(() {
-        usuario = usuario.copyWith(nivelActual: rutina.nivel); // ✅ ahora sí nivel real
+        usuario = usuario.copyWith(nivelActual: rutina.nivel); 
         _tarjetasFuture = _cargarTarjetas();
       });
     }
   } catch (e) {
-    debugPrint("❌ Error al actualizar nivel: $e");
+    debugPrint(" Error al actualizar nivel: $e");
   }
 }
   // 🔹 Lógica para cargar las tarjetas con datos reales
-  Future<List<CardDataModel>> _cargarTarjetas() async {
-    final totales = await DesafioService.obtenerTotalesUsuario();
-    final lista = await DesafioService.obtenerDesafiosPorUsuario();
+Future<List<CardDataModel>> _cargarTarjetas() async {
+  final lista = await DesafioService.obtenerDesafiosPorUsuario();
 
-    // 1. Puntos totales
-    final puntosTotales = totales['puntos'] ?? 0;
+  // 🔹 Desafíos completados
+  final completados = lista
+      .where((d) => (d['estado'] ?? '').toString().toLowerCase() == 'finalizado')
+      .length;
 
-    // 2. Desafíos completados
-    final completados = lista
-        .where((d) => (d['estado'] ?? '').toString().toLowerCase() == 'finalizado')
-        .length;
+  // 🔹 Promedio diario (solo día actual)
+  final hoy = DateFormat('yyyy-MM-dd').format(DateTime.now());
+  final hoyCount = lista.where((d) {
+    final fecha = d['fechaFinDesafio'] ?? d['fechaInicioDesafio'];
+    if (fecha == null) return false;
+    final fechaNormalizada = fecha.toString().substring(0, 10);
+    return fechaNormalizada == hoy;
+  }).length;
 
-    // 3. Promedio diario (solo día actual)
-    final hoy = DateFormat('yyyy-MM-dd').format(DateTime.now());
-    final hoyCount = lista.where((d) {
-      final fecha = d['fechaFinDesafio'] ?? d['fechaInicioDesafio'];
-      if (fecha == null) return false;
-      final fechaNormalizada = fecha.toString().substring(0, 10);
-      return fechaNormalizada == hoy;
-    }).length;
+  // 🔹 Nivel actual del usuario
+  final nivel = usuario.nivelActual;
 
-    // 4. Nivel actual del usuario
-    final nivel = usuario.nivelActual;
-
-    return [
-      CardDataModel(title: 'Puntos totales', value: '$puntosTotales', icon: Icons.star),
-      CardDataModel(title: 'Desafíos completados', value: '$completados', icon: Icons.fitness_center),
-      CardDataModel(title: 'Promedio diario', value: '$hoyCount', icon: Icons.bar_chart),
-      CardDataModel(title: 'Nivel actual', value: nivel, icon: Icons.trending_up),
-    ];
-  }
+  return [
+    CardDataModel(title: 'Desafíos completados', value: '$completados', icon: Icons.fitness_center),
+    CardDataModel(title: 'Promedio diario', value: '$hoyCount', icon: Icons.bar_chart),
+    CardDataModel(title: 'Nivel actual', value: nivel, icon: Icons.trending_up),
+  ];
+}
 
   void _showSnack(String msg, {Color? bg, IconData? icon}) {
     ScaffoldMessenger.of(context).showSnackBar(
@@ -112,31 +112,18 @@ Future<void> _actualizarNivel() async {
     );
   }
 
-  void _mostrarAlertaSinRutina() {
-    showDialog(
-      context: context,
-      barrierDismissible: true,
-      builder: (ctx) {
-        Future.delayed(const Duration(seconds: 3), () {
-          if (Navigator.of(ctx).canPop()) Navigator.of(ctx).pop();
-        });
-        return AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          title: Column(
-            children: const [
-              Icon(Icons.info_outline, color: Colors.orange, size: 48),
-              SizedBox(height: 12),
-              Text('Sin rutina asignada',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20)),
-            ],
-          ),
-          content: const Text('Todavía no tienes una rutina asignada.',
-              textAlign: TextAlign.center),
-        );
-      },
-    );
-  }
+void _mostrarAlertaSinRutina({String mensaje = 'Todavía no tienes una rutina asignada.'}) {
+  AwesomeDialog(
+    context: context,
+    dialogType: DialogType.info,
+    animType: AnimType.bottomSlide,
+    title: 'Sin rutina asignada',
+    desc: mensaje,
+    btnOkText: 'Entendido',
+    btnOkOnPress: () {},
+    btnOkColor: const Color.fromARGB(255, 0, 150, 22),
+  ).show();
+}
 
   List<Widget> _buildDrawerItems() => [
         ListTile(
@@ -233,37 +220,41 @@ Future<void> _actualizarNivel() async {
     return null;
   }
 
-  Future<void> _consultarAsignacion() async {
+Future<void> _consultarAsignacion() async {
+  try {
+    setState(() => _cargandoAsignacion = true);
+
     final idPersona = await _resolverIdPersona();
-    if (idPersona == null) {
-      _showSnack('No se encontró idPersona',
-          bg: Colors.redAccent, icon: Icons.error_outline);
+    if (idPersona == null) throw Exception('No se pudo obtener el idPersona');
+
+    final asignaciones = await AsignacionRutinaService.obtenerRutinasPorPersona(idPersona);
+
+    if (!mounted) return;
+
+    if (asignaciones.isEmpty) {
+      _mostrarAlertaSinRutina();
       return;
     }
-    try {
-      setState(() => _cargandoAsignacion = true);
-      final AsignacionRutina? a =
-          await AsignacionRutinaService.obtenerPorPersona(idPersona);
 
-      if (!mounted) return;
-      if (a == null) {
-        _mostrarAlertaSinRutina();
-        return;
-      }
+    await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => RutinaAsignadaScreen(asignaciones: asignaciones),
+      ),
+    );
 
-      await Navigator.push(
-        context,
-        MaterialPageRoute(builder: (_) => RutinaAsignadaScreen(asignacion: a)),
-      );
-      _showSnack('Rutina cargada',
-          bg: Colors.green, icon: Icons.check_circle_outline);
-    } catch (e) {
-      _showSnack('Error al consultar rutina. Revisa consola.',
-          bg: Colors.redAccent, icon: Icons.error_outline);
-    } finally {
-      if (mounted) setState(() => _cargandoAsignacion = false);
-    }
+    _showSnack('Rutinas cargadas', bg: Colors.green, icon: Icons.check_circle);
+  } catch (e) {
+    debugPrint('Error al consultar rutinas: $e');
+    _mostrarAlertaSinRutina(
+      mensaje: 'No  tienes rutinas asignadas, consulta con tu entrenador.',
+    );
+  } finally {
+    if (mounted) setState(() => _cargandoAsignacion = false);
   }
+}
+
+
 
   Future<void> _generarRutina() async {
     final initial = {"nivel": usuario.nivelActual};
@@ -313,100 +304,128 @@ Future<void> _actualizarNivel() async {
 
     final datosSemana = <double>[2, 3, 1, 4, 5, 2, 0];
 
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Dashboard del Aprendiz'),
-        centerTitle: true,
-        actions: [
-          Builder(
-            builder: (context) => IconButton(
-              icon: const Icon(Icons.more_vert),
-              onPressed: () => Scaffold.of(context).openEndDrawer(),
-            ),
+return Scaffold(
+  endDrawerEnableOpenDragGesture: false, 
+  endDrawer: Drawer(
+    child: ListView(
+      padding: EdgeInsets.zero,
+      children: [
+        UserAccountsDrawerHeader(
+          accountName: Text(usuario.nombre),
+          accountEmail: Text(usuario.email),
+          currentAccountPicture: CircleAvatar(
+            radius: 36,
+            backgroundColor: Colors.grey[200],
+            backgroundImage: usuario.fotoUrl.isNotEmpty
+                ? CachedNetworkImageProvider(usuario.fotoUrl)
+                : null,
+            child: usuario.fotoUrl.isEmpty
+                ? const Icon(Icons.person, size: 40, color: Colors.grey)
+                : null,
           ),
-        ],
-      ),
-      endDrawer: Drawer(
-        child: ListView(
-          padding: EdgeInsets.zero,
-          children: [
-            UserAccountsDrawerHeader(
-              accountName: Text(usuario.nombre),
-              accountEmail: Text(usuario.email),
-              currentAccountPicture: CircleAvatar(
-                radius: 36,
-                backgroundColor: Colors.grey[200],
-                backgroundImage: usuario.fotoUrl.isNotEmpty
-                    ? CachedNetworkImageProvider(usuario.fotoUrl)
-                    : null,
-                child: usuario.fotoUrl.isEmpty
-                    ? const Icon(Icons.person, size: 40, color: Colors.grey)
-                    : null,
-              ),
-            ),
-            ..._buildDrawerItems(),
-            ListTile(
-              leading: const Icon(Icons.analytics_outlined, color: Colors.green),
-              title: const Text('Estadísticas Detalladas'),
-              onTap: () {
-                Navigator.pop(context);
-                Navigator.pushNamed(context, '/progreso-estadisticas');
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.notifications_outlined, color: Colors.green),
-              title: const Text('Configurar Notificaciones'),
-              onTap: () {
-                Navigator.pop(context);
-                showDialog(
-                    context: context,
-                    builder: (c) => const NotificacionesWidget());
-              },
-            ),
-          ],
+        ),
+        ..._buildDrawerItems(),
+        ListTile(
+          leading: const Icon(Icons.history, color: Colors.red),
+          title: const Text('Ver historial de mediciones'),
+          onTap: () {
+            Navigator.pop(context);
+            Navigator.pushNamed(context, '/frecuencia-historial');
+          },
+        ),
+        ListTile(
+          leading: const Icon(Icons.analytics_outlined, color: Colors.green),
+          title: const Text('Estadísticas Detalladas'),
+          onTap: () {
+            Navigator.pop(context);
+            Navigator.pushNamed(context, '/progreso-estadisticas');
+          },
+        ),
+        ListTile(
+          leading: const Icon(Icons.notifications_outlined, color: Colors.green),
+          title: const Text('Configurar Notificaciones'),
+          onTap: () {
+            Navigator.pop(context);
+            showDialog(
+              context: context,
+              builder: (c) => const NotificacionesWidget(),
+            );
+          },
+        ),
+      ],
+    ),
+  ),
+
+  appBar: AppBar(
+    title: const Text(
+      'HealthU',
+      style: TextStyle(fontWeight: FontWeight.bold),
+    ),
+    backgroundColor: Colors.green,
+    automaticallyImplyLeading: false, 
+    actions: [
+      Builder(
+        builder: (context) => IconButton(
+          icon: const Icon(Icons.menu), 
+          onPressed: () {
+            Scaffold.of(context).openEndDrawer(); 
+          },
         ),
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: RefreshIndicator(
-          onRefresh: _actualizarNivel, // 🔄 actualizar al hacer swipe down
-          child: ListView(
-            children: [
-              FichaIdentificacion(usuario: usuario),
-              const SizedBox(height: 12),
-              Center(
-                child: Text('Bienvenido, ${usuario.nombre.split(' ').first}',
-                    style: const TextStyle(
-                        fontSize: 20, fontWeight: FontWeight.w600)),
+    ],
+  ),
+
+  body: Padding(
+    padding: const EdgeInsets.all(16.0),
+    child: RefreshIndicator(
+      onRefresh: _actualizarNivel,
+      child: ListView(
+        children: [
+          FichaIdentificacion(usuario: usuario),
+          const SizedBox(height: 12),
+          Center(
+            child: Text(
+              'Bienvenido, ${usuario.nombre.split(' ').first}',
+              style: const TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.w600,
               ),
-              Center(
-                  child: Text(fechaHoy,
-                      style: const TextStyle(fontSize: 14, color: Colors.grey))),
-              const SizedBox(height: 8),
-              Center(
-                child: Text(_obtenerSaludo(),
-                    style: const TextStyle(
-                        fontSize: 14,
-                        fontStyle: FontStyle.italic,
-                        color: Colors.green)),
+            ),
+          ),
+          Center(
+            child: Text(
+              DateFormat('EEEE d MMMM', 'es').format(DateTime.now()),
+              style: const TextStyle(fontSize: 14, color: Colors.grey),
+            ),
+          ),
+          const SizedBox(height: 8),
+          Center(
+            child: Text(
+              _obtenerSaludo(),
+              style: const TextStyle(
+                fontSize: 14,
+                fontStyle: FontStyle.italic,
+                color: Colors.green,
               ),
-              const SizedBox(height: 16),
-              Center(
-                child: ElevatedButton.icon(
-                  onPressed: _cargandoAsignacion ? null : _consultarAsignacion,
-                  icon: _cargandoAsignacion
-                      ? const SizedBox(
-                          width: 18,
-                          height: 18,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : const Icon(Icons.assignment_outlined),
-                  label: const Text('Ver rutina asignada'),
-                  style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
-                ),
-              ),
-              const SizedBox(height: 24),
-              const ProgresoDesafiosCard(),
+            ),
+          ),
+          const SizedBox(height: 16),
+          Center(
+            child: ElevatedButton.icon(
+              onPressed: _cargandoAsignacion ? null : _consultarAsignacion,
+              icon: _cargandoAsignacion
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.assignment_outlined),
+              label: const Text('Ver rutina asignada'),
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
+            ),
+          ),
+          const SizedBox(height: 24),
+          const ProgresoDesafiosCard(),
               const SizedBox(height: 24),
 
               // 🔹 Tarjetas dinámicas
@@ -427,12 +446,16 @@ Future<void> _actualizarNivel() async {
               ),
 
               const SizedBox(height: 32),
-              const TextoSeccion('Progreso de Nivel'),
-              const BarraProgreso(),
+             const TextoSeccion('Progreso de Nivel'),
+            Nivel(
+           nivel: (usuario.nivelActual.isNotEmpty)
+            ? usuario.nivelActual
+            : 'Principiante',
+             ),
               const SizedBox(height: 32),
               const TextoSeccion('Progreso semanal de desafíos'),
               const SizedBox(height: 16),
-              GraficaBarras(valores: datosSemana),
+              const GraficaBarrasSemanal(),
               const SizedBox(height: 32),
               const TextoSeccion('Desafíos Finalizados vs En Progreso'),
               const SizedBox(height: 16),

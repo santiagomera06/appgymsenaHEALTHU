@@ -17,12 +17,12 @@ dependencies:
   # Escaneo de QR
   mobile_scanner: ^3.0.0
   camera: ^0.10.0+4
-  permission_handler: ^12.0.1 
+  permission_handler: ^12.0.1
 
   # Networking
   dio: ^5.4.0
   http: ^1.1.0
-  http_parser: ^4.0.0 
+  http_parser: ^4.0.0
 
   # Persistencia
   shared_preferences: ^2.2.2
@@ -44,19 +44,25 @@ dependencies:
   # Medición BPM (frecuencia cardíaca)
   heart_bpm: ^2.0.0
 
-  # 📅 Calendario
+  # Calendario
   table_calendar: ^3.1.2
+
+  awesome_dialog: ^3.1.0
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^5.0.0
 
+  # Ícono de la aplicación
+  flutter_launcher_icons: ^0.13.1
+
 dependency_overrides:
-  vector_math: ^2.2.0   
+  vector_math: ^2.2.0
 
 flutter:
   uses-material-design: true
+
   assets:
     - assets/images/full.png
     - assets/images/pecho.png
@@ -64,3 +70,9 @@ flutter:
     - assets/images/healthu_logo.png
     - assets/images/badge.png
     - assets/animations/
+
+# Configuración del ícono de la app
+flutter_icons:
+  android: true
+  ios: true
+  image_path: "assets/images/healthu_logo.png"

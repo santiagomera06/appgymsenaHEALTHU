@@ -1,4 +1,3 @@
-
 class EjercicioRutina {
   final int idEjercicio;
   final String nombre;
@@ -10,7 +9,7 @@ class EjercicioRutina {
   final int? duracion;
   final int? calorias;
   final int? orden;
-  final int? tiempoDescanso; 
+  final int? tiempoDescanso;
   final bool? asignacion;
 
   EjercicioRutina({
@@ -29,22 +28,39 @@ class EjercicioRutina {
   });
 
   factory EjercicioRutina.fromJson(Map<String, dynamic> j) {
-    int? _toInt(dynamic v) => v == null ? null : int.tryParse('$v');
-    num? _toNum(dynamic v) => v == null ? null : num.tryParse('$v');
+    int? toInt(dynamic v) => v == null ? null : int.tryParse('$v');
+    num? toNum(dynamic v) => v == null ? null : num.tryParse('$v');
 
     return EjercicioRutina(
-      idEjercicio: _toInt(j['idEjercicio'] ?? j['id'] ?? 0) ?? 0,
+      idEjercicio: toInt(j['idEjercicio'] ?? j['id'] ?? 0) ?? 0,
       nombre: j['nombre']?.toString() ?? 'Ejercicio',
       descripcion: j['descripcion']?.toString(),
       musculos: j['musculos']?.toString(),
-      series: _toInt(j['series']),
-      repeticiones: _toInt(j['repeticiones']),
-      carga: _toNum(j['carga']),
-      duracion: _toInt(j['duracion']),
-      calorias: _toInt(j['calorias']),
-      orden: _toInt(j['orden']),
-      tiempoDescanso: _toInt(j['tiempoDescanso']),
-      asignacion: j['asignacion'] is bool ? j['asignacion'] as bool : (j['asignacion']?.toString().toLowerCase() == 'true'),
+      series: toInt(j['series']),
+      repeticiones: toInt(j['repeticiones']),
+      carga: toNum(j['carga']),
+      duracion: toInt(j['duracion']),
+      calorias: toInt(j['calorias']),
+      orden: toInt(j['orden']),
+      tiempoDescanso: toInt(j['tiempoDescanso']),
+      asignacion: j['asignacion'] is bool
+          ? j['asignacion'] as bool
+          : (j['asignacion']?.toString().toLowerCase() == 'true'),
     );
   }
+
+  Map<String, dynamic> toJson() => {
+        'idEjercicio': idEjercicio,
+        'nombre': nombre,
+        'descripcion': descripcion,
+        'musculos': musculos,
+        'series': series,
+        'repeticiones': repeticiones,
+        'carga': carga,
+        'duracion': duracion,
+        'calorias': calorias,
+        'orden': orden,
+        'tiempoDescanso': tiempoDescanso,
+        'asignacion': asignacion,
+      };
 }

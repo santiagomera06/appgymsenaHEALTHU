@@ -14,7 +14,7 @@ class UsuarioService {
       if (token == null) throw Exception("No hay token guardado");
 
       final url = Uri.parse('${ApiConfig.baseUrl}/rutina/porAprendiz');
-      debugPrint("➡️ Intentando consumir: $url");
+      debugPrint(" Intentando consumir: $url");
 
       final resp = await http.get(
         url,
@@ -24,8 +24,8 @@ class UsuarioService {
         },
       );
 
-      debugPrint("⬅️ Status: ${resp.statusCode}");
-      debugPrint("⬅️ Response body: ${resp.body}");
+      debugPrint(" Status: ${resp.statusCode}");
+      debugPrint(" Response body: ${resp.body}");
 
       if (resp.statusCode == 200) {
         final List<dynamic> data = json.decode(resp.body);
@@ -34,10 +34,10 @@ class UsuarioService {
         if (data.isNotEmpty) {
           final rutina = data.first;
           nivel = rutina['dificultad'] ?? 'Sin nivel';
-          debugPrint("✅ Nivel encontrado en rutina: $nivel");
+          debugPrint(" Nivel encontrado en rutina: $nivel");
         } else {
           nivel = 'Sin nivel';
-          debugPrint("⚠️ No hay rutinas para este aprendiz");
+          debugPrint(" No hay rutinas para este aprendiz");
         }
 
         return Usuario(

@@ -11,6 +11,8 @@ import 'package:healthu/screens/estadisticas/progreso_estadisticas_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
 import 'package:healthu/screens/dashboard/medicion_frecuencia_screen.dart';
+import 'package:healthu/screens/frecuencia/frecuencia_list_screen.dart';
+
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -59,8 +61,9 @@ class HealthuApp extends StatelessWidget {
               },
             ),
         '/crear-rutina': (context) => const CrearRutinaScreen(),
-        '/progreso-estadisticas':
-            (context) => const ProgresoEstadisticasScreen(),
+        '/progreso-estadisticas':(context) => const ProgresoEstadisticasScreen(),
+        '/frecuencia-historial': (context) => const FrecuenciaListScreen(),
+
       },
       onGenerateRoute: (settings) {
         return MaterialPageRoute(

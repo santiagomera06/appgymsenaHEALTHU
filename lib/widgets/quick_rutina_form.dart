@@ -56,16 +56,15 @@ class _QuickRutinaFormState extends State<QuickRutinaForm> {
     _frecuenciaCardio.text = (i['frecuenciaCardio']?.toString() ?? '');
   }
 
-String? _matchOrNull(dynamic value, List<String> options) {
-  if (value == null) return null;
-  final v = value.toString();
-  final match = options.firstWhere(
-    (o) => o.toLowerCase() == v.toLowerCase(),
-    orElse: () => '', 
-  );
-
-  return match.isEmpty ? null : match;
-}
+  String? _matchOrNull(dynamic value, List<String> options) {
+    if (value == null) return null;
+    final v = value.toString();
+    final match = options.firstWhere(
+      (o) => o.toLowerCase() == v.toLowerCase(),
+      orElse: () => '', 
+    );
+    return match.isEmpty ? null : match;
+  }
 
   @override
   void dispose() {
@@ -182,8 +181,18 @@ String? _matchOrNull(dynamic value, List<String> options) {
               ),
               const SizedBox(height: 12),
 
-              // UBICACIÓN
-              TextFormField(controller: _ubicacion, decoration: deco('Ubicación (casa/gym)')),
+              // UBICACIÓN (actualizado)
+              DropdownButtonFormField<String>(
+                value: _ubicacion.text.isNotEmpty ? _ubicacion.text : null,
+                decoration: deco('Ubicación'),
+                items: const [
+                  DropdownMenuItem(value: 'Casa', child: Text('Casa')),
+                  DropdownMenuItem(value: 'Gimnasio', child: Text('Gimnasio')),
+                  DropdownMenuItem(value: 'Aire libre', child: Text('Aire libre')),
+                ],
+                onChanged: (v) => setState(() => _ubicacion.text = v ?? ''),
+                validator: (v) => (v == null || v.isEmpty) ? 'Requerido' : null,
+              ),
               const SizedBox(height: 8),
 
               // FRECUENCIA CARDIO

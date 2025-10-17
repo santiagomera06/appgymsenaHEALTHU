@@ -191,7 +191,6 @@ class _ProgresoDesafiosCardState extends State<ProgresoDesafiosCard> {
     final nombreDesafio = desafio['nombreDesafio'] ?? 'Desafío Sin Nombre';
     final numeroDesafio = desafio['numeroDesafio'] ?? 0;
     final estadoDesafio = desafio['estadoDesafio'] ?? 'Desconocido';
-    final puntosAcumulados = desafio['puntosAcumulados'] ?? 0;
 
     final colorEstado = _getColorEstado(estadoDesafio);
     final iconoEstado = _getIconoEstado(estadoDesafio);
@@ -269,18 +268,10 @@ class _ProgresoDesafiosCardState extends State<ProgresoDesafiosCard> {
 
         const SizedBox(height: 12),
 
-        // Estadísticas
+        // 🔹 Solo mostrar Estado (sin Puntos)
         Row(
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Expanded(
-              child: _buildStatCard(
-                'Puntos',
-                puntosAcumulados.toString(),
-                Icons.stars,
-                Colors.amber,
-              ),
-            ),
-            const SizedBox(width: 12),
             Expanded(
               child: _buildStatCard(
                 'Estado',

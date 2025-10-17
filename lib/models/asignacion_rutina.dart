@@ -2,41 +2,60 @@ class AsignacionRutina {
   final int idAsignacion;
   final int idPersona;
   final int idRutina;
-  final String? observaciones;
+  final String? nombreRutina;
+  final String? nombreAprendiz;
+  final int? ficha;
+  final String? nivelFisico;
+  final String observaciones;
   final DateTime? fechaAsignacion;
   final DateTime? fechaFinalizacion;
-  final String? diasAsignado;
+  final String diasAsignado;
 
   AsignacionRutina({
     required this.idAsignacion,
     required this.idPersona,
     required this.idRutina,
-    this.observaciones,
+    this.nombreRutina,
+    this.nombreAprendiz,
+    this.ficha,
+    this.nivelFisico,
+    required this.observaciones,
     this.fechaAsignacion,
     this.fechaFinalizacion,
-    this.diasAsignado,
+    required this.diasAsignado,
   });
 
   factory AsignacionRutina.fromJson(Map<String, dynamic> json) {
-    DateTime? _toDate(dynamic v) {
-      if (v == null) return null;
-      final s = v.toString();
-      if (s.isEmpty) return null;
-      try {
-        return DateTime.parse(s);
-      } catch (_) {
-        return null;
-      }
-    }
-
     return AsignacionRutina(
-      idAsignacion: int.tryParse(json['idAsignacion']?.toString() ?? '') ?? 0,
-      idPersona: int.tryParse(json['idPersona']?.toString() ?? '') ?? 0,
-      idRutina: int.tryParse(json['idRutina']?.toString() ?? '') ?? 0,
-      observaciones: json['observaciones'] as String?,
-      fechaAsignacion: _toDate(json['fechaAsignacion']),
-      fechaFinalizacion: _toDate(json['fechaFinalizacion']),
-      diasAsignado: json['diasAsignado'] as String?,
+      idAsignacion: json['idAsignacion'] ?? 0,
+      idPersona: json['idPersona'] ?? 0,
+      idRutina: json['idRutina'] ?? 0,
+      nombreRutina: json['nombreRutina'] ?? json['rutinaNombre'] ?? '',
+      nombreAprendiz: json['nombreAprendiz'] ?? '',
+      ficha: json['ficha'] ?? 0,
+      nivelFisico: json['nivelFisico'] ?? '',
+      observaciones: json['observaciones'] ?? json['obsevaciones'] ?? '',
+      fechaAsignacion: json['fechaAsignacion'] != null
+          ? DateTime.tryParse(json['fechaAsignacion'])
+          : null,
+      fechaFinalizacion: json['fechaFinalizacion'] != null
+          ? DateTime.tryParse(json['fechaFinalizacion'])
+          : null,
+      diasAsignado: json['diasAsignado'] ?? '',
     );
   }
+
+  Map<String, dynamic> toJson() => {
+        'idAsignacion': idAsignacion,
+        'idPersona': idPersona,
+        'idRutina': idRutina,
+        'nombreRutina': nombreRutina,
+        'nombreAprendiz': nombreAprendiz,
+        'ficha': ficha,
+        'nivelFisico': nivelFisico,
+        'observaciones': observaciones,
+        'fechaAsignacion': fechaAsignacion?.toIso8601String(),
+        'fechaFinalizacion': fechaFinalizacion?.toIso8601String(),
+        'diasAsignado': diasAsignado,
+      };
 }

@@ -42,7 +42,7 @@ class Ejercicio {
       }
     }
 
-    debugPrint('🏋️ Ejercicio recibido: ${json['nombre']} | foto: $imagen');
+    debugPrint('Ejercicio recibido: ${json['nombre']} | foto: $imagen');
 
     return Ejercicio(
       idEjercicio: json['idEjercicio'] ?? 0,
@@ -76,9 +76,9 @@ class Rutina {
     String tipoOriginal = json['dificultad']?.toString() ?? 'General';
 
     debugPrint(
-      '➡️ Rutina recibida: ${json['nombre']} | dificultad: $tipoOriginal',
+      ' Rutina recibida: ${json['nombre']} | dificultad: $tipoOriginal',
     );
-    debugPrint('📸 Foto de rutina: ${json['fotoRutina']}');
+    debugPrint('Foto de rutina: ${json['fotoRutina']}');
 
     // Normalizamos dificultad
     String tipo = tipoOriginal.toLowerCase();

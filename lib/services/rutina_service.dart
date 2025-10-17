@@ -3,8 +3,7 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:healthu/models/crear_rutina_model.dart' as crear_rutina;
 import 'package:healthu/models/rutina_model.dart' as rutina_model;
-import 'package:flutter/foundation.dart';  // 👈 agrega esto arriba
-
+import 'package:flutter/foundation.dart';
 
 const int timeoutSeconds = 10;
 
@@ -240,7 +239,7 @@ class RutinaService {
   static rutina_model.RutinaDetalle _mapearRutinaDesdeApi(Map<String, dynamic> data) {
     final ejerciciosRaw = (data['ejercicios'] ?? data['practices'] ?? []) as List;
 
-    // 🔎 Normalización de imagen
+    //  Normalización de imagen
     String? imagen;
     final foto = data['fotoRutina'] ?? data['imageUrl'] ?? '';
     if (foto != null && foto.toString().isNotEmpty) {
@@ -322,14 +321,15 @@ class RutinaService {
   }
 static Future<rutina_model.RutinaDetalle?> obtenerRutinaPorAprendiz(int idPersona) async {
   try {
-    // 1️⃣ Traer asignación de rutina del aprendiz
+    debugPrint('[RutinaService] ---> GET $baseUrl/asignaciones/rutina/$idPersona');
+
     final asignacionResp = await http.get(
       Uri.parse('$baseUrl/asignaciones/rutina/$idPersona'),
       headers: await _headers(),
     ).timeout(const Duration(seconds: timeoutSeconds));
 
     if (asignacionResp.statusCode != 200 || asignacionResp.body.isEmpty) {
-      debugPrint("⚠️ No se encontró asignación para idPersona=$idPersona");
+      debugPrint("❌ No se encontró asignación para idPersona=$idPersona");
       return null;
     }
 
@@ -340,7 +340,7 @@ static Future<rutina_model.RutinaDetalle?> obtenerRutinaPorAprendiz(int idPerson
       return null;
     }
 
-    // 2️⃣ Consultar la rutina asignada con idRutina
+    debugPrint('[RutinaService] ---> GET $baseUrl/rutina/obtenerRutina/$idRutina');
     final rutinaResp = await http.get(
       Uri.parse('$baseUrl/rutina/obtenerRutina/$idRutina'),
       headers: await _headers(),
@@ -350,13 +350,65 @@ static Future<rutina_model.RutinaDetalle?> obtenerRutinaPorAprendiz(int idPerson
       final data = json.decode(rutinaResp.body);
       return _mapearRutinaDesdeApi(data);
     } else {
-      debugPrint("⚠️ Error obteniendo rutina asignada: ${rutinaResp.statusCode}");
+      debugPrint("❌ Error obteniendo rutina asignada: ${rutinaResp.statusCode}");
       return null;
     }
   } catch (e) {
-    debugPrint("❌ Error en obtenerRutinaPorAprendiz: $e");
+    debugPrint(" Error en obtenerRutinaPorAprendiz: $e");
     return null;
   }
 }
 
+static Future<rutina_model.RutinaDetalle> obtenerRutinaPorNombre(String nombre) async {
+  final url = Uri.parse('$baseUrl/rutina/obtenerPorNombre/$nombre');
+  final prefs = await SharedPreferences.getInstance();
+  final token = prefs.getString('token');
+
+  final headers = <String, String>{
+    'Accept': 'application/json',
+    'Content-Type': 'application/json',
+    if (token != null && token.isNotEmpty) 'Authorization': 'Bearer $token',
+  };
+
+  try {
+    debugPrint('[RutinaService] ---> GET $url');
+    final resp = await http.get(url, headers: headers);
+    debugPrint('[RutinaService] <--- ${resp.statusCode}');
+    debugPrint('[RutinaService] Body: ${resp.body}');
+
+    if (resp.statusCode == 200) {
+      final jsonData = json.decode(resp.body);
+      return rutina_model.RutinaDetalle.fromJson(jsonData);
+    } else if (resp.statusCode == 404) {
+      throw Exception('Rutina no encontrada: $nombre');
+    } else {
+      throw Exception('Error ${resp.statusCode} al obtener rutina $nombre: ${resp.body}');
+    }
+  } catch (e) {
+    debugPrint('❌ Error al obtener rutina $nombre: $e');
+    rethrow;
+  }
+}
+static Future<rutina_model.RutinaDetalle> obtenerRutinaPorId(int idRutina) async {
+  final url = Uri.parse('$baseUrl/rutina/obtenerRutina/$idRutina');
+  final prefs = await SharedPreferences.getInstance();
+  final token = prefs.getString('token');
+
+  final headers = {
+    'Accept': 'application/json',
+    'Content-Type': 'application/json',
+    if (token != null && token.isNotEmpty) 'Authorization': 'Bearer $token',
+  };
+
+  debugPrint('[RutinaService] ---> GET $url');
+  final response = await http.get(url, headers: headers);
+  debugPrint('[RutinaService] <--- ${response.statusCode}');
+
+  if (response.statusCode == 200) {
+    final data = jsonDecode(response.body);
+    return rutina_model.RutinaDetalle.fromJson(data);
+  } else {
+    throw Exception('Error al obtener rutina por ID: ${response.statusCode}');
+  }
+}
 }

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:healthu/screens/rutinas/detalle_rutina.dart';
+import 'package:healthu/screens/rutinas/crear_rutina_screen.dart';
 import 'package:healthu/screens/desafios/desafios_screen.dart';
 import 'package:healthu/screens/Dashboard/dashboard_screen.dart';
 import 'package:healthu/models/usuario.dart';
@@ -31,26 +32,26 @@ class _RutinasGeneralesState extends State<RutinasGenerales> {
     });
 
     switch (index) {
-      case 0: // Desafíos
+      case 0:
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (_) => const DesafiosScreen()),
         );
         break;
-      case 1: // Rutinas
+      case 1:
         break;
-      case 2: // Dashboard
+      case 2:
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(
             builder: (_) => DashboardScreen(
               usuario: Usuario(
-  id: 0,   // ✅ int
-  nombre: 'Invitado',
-  email: 'invitado@correo.com',
-  fotoUrl: 'https://via.placeholder.com/150',
-  nivelActual: 'Principiante',
-),
+                id: 0,
+                nombre: 'Invitado',
+                email: 'invitado@correo.com',
+                fotoUrl: 'https://via.placeholder.com/150',
+                nivelActual: 'Principiante',
+              ),
             ),
           ),
         );
@@ -64,23 +65,23 @@ class _RutinasGeneralesState extends State<RutinasGenerales> {
     _cargarRutinas();
   }
 
-void _cargarRutinas() async {
-  try {
-    final servicio = RutinasGeneralesService(); // <-- Nombre correcto de la clase
-    final rutinas = await servicio.obtenerRutinas();
-    if (!mounted) return; // <- evita error de use_build_context_synchronously
-    setState(() {
-      _rutinas = rutinas;
-      _cargando = false;
-    });
-  } catch (e) {
-    print('Error cargando rutinas: $e'); 
-    if (!mounted) return;
-    setState(() {
-      _cargando = false;
-    });
+  Future<void> _cargarRutinas() async {
+    try {
+      final servicio = RutinasGeneralesService();
+      final rutinas = await servicio.obtenerRutinas();
+      if (!mounted) return;
+      setState(() {
+        _rutinas = rutinas;
+        _cargando = false;
+      });
+    } catch (e) {
+      print('Error cargando rutinas: $e');
+      if (!mounted) return;
+      setState(() {
+        _cargando = false;
+      });
+    }
   }
-}
 
   void _mostrarMenuNivel() async {
     final seleccion = await showMenu<String>(
@@ -99,7 +100,6 @@ void _cargarRutinas() async {
         nivelSeleccionado = seleccion;
       });
 
-      // Mostrar mensaje al aplicar el filtro
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
@@ -172,120 +172,173 @@ void _cargarRutinas() async {
       ),
       body: _cargando
           ? const Center(child: CircularProgressIndicator())
-          : rutinasFiltradas.isEmpty
-              ? const Center(
-                  child: Text(
-                    'No hay rutinas para este nivel',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
-                  ),
-                )
-              : ListView.builder(
-                  itemCount: rutinasFiltradas.length,
-                  itemBuilder: (context, index) {
-                    final rutina = rutinasFiltradas[index];
-                    final rutinaDetalle = _convertirARutinaDetalle(rutina);
+          : Column(
+              children: [
+                // 🔹 Botón para crear rutina
+                Padding(
+                  padding: const EdgeInsets.all(12.0),
+                  child: ElevatedButton.icon(
+                    onPressed: () async {
+                      final creada = await Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const CrearRutinaScreen(),
+                        ),
+                      );
 
-                    return Card(
+                      // 🔹 Si se creó correctamente, recarga las rutinas
+                      if (creada == true) {
+                        setState(() => _cargando = true);
+                        await _cargarRutinas();
+
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('🎉 Rutina creada y lista actualizada'),
+                            duration: Duration(seconds: 2),
+                          ),
+                        );
+                      }
+                    },
+                    icon: const Icon(Icons.add_circle_outline),
+                    label: const Text('Crea tu rutina'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.green[700],
+                      foregroundColor: Colors.white,
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
+                        borderRadius: BorderRadius.circular(10),
                       ),
-                      margin: const EdgeInsets.all(12),
-                      child: InkWell(
-                        borderRadius: BorderRadius.circular(12),
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) =>
-                                  DetalleRutinaScreen(rutina: rutinaDetalle),
+                      minimumSize: const Size(double.infinity, 48),
+                    ),
+                  ),
+                ),
+                Expanded(
+                  child: rutinasFiltradas.isEmpty
+                      ? const Center(
+                          child: Text(
+                            'No hay rutinas para este nivel',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w500,
                             ),
-                          );
-                        },
-                        child: Padding(
-                          padding: const EdgeInsets.all(12),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
-                                mainAxisAlignment:
-                                    MainAxisAlignment.spaceBetween,
-                                children: [
-                                  Text(
-                                    rutina.nombre,
-                                    style: const TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 18,
-                                    ),
-                                  ),
-                                  Chip(
-                                    backgroundColor:
-                                        _obtenerColorNivel(rutina.tipo),
-                                    label: Text(
-                                      rutina.tipo,
-                                      style:
-                                          const TextStyle(color: Colors.white),
-                                    ),
-                                  ),
-                                ],
+                          ),
+                        )
+                      : ListView.builder(
+                          itemCount: rutinasFiltradas.length,
+                          itemBuilder: (context, index) {
+                            final rutina = rutinasFiltradas[index];
+                            final rutinaDetalle =
+                                _convertirARutinaDetalle(rutina);
+
+                            return Card(
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
                               ),
-                              const SizedBox(height: 8),
-                              Text(rutina.descripcion),
-                              const SizedBox(height: 10),
-                              rutina.imagen != null && rutina.imagen!.isNotEmpty
-                                  ? ClipRRect(
-                                      borderRadius: BorderRadius.circular(10),
-                                      child: Image.network(
-                                        rutina.imagen!,
-                                        height: 160,
-                                        width: double.infinity,
-                                        fit: BoxFit.cover,
-                                        errorBuilder: (_, __, ___) =>
-                                            Container(
-                                          height: 160,
-                                          color: Colors.grey[200],
-                                          child: const Icon(
-                                              Icons.fitness_center,
-                                              size: 50),
-                                        ),
-                                      ),
-                                    )
-                                  : Container(
-                                      height: 160,
-                                      decoration: BoxDecoration(
-                                        color: Colors.grey[300],
-                                        borderRadius: BorderRadius.circular(10),
-                                      ),
-                                      child: const Icon(Icons.fitness_center,
-                                          size: 50),
-                                    ),
-                              const SizedBox(height: 8),
-                              ElevatedButton.icon(
-                                onPressed: () {
+                              margin: const EdgeInsets.all(12),
+                              child: InkWell(
+                                borderRadius: BorderRadius.circular(12),
+                                onTap: () {
                                   Navigator.push(
                                     context,
                                     MaterialPageRoute(
-                                      builder: (context) => DetalleRutinaScreen(
+                                      builder: (_) => DetalleRutinaScreen(
                                           rutina: rutinaDetalle),
                                     ),
                                   );
                                 },
-                                icon: const Icon(Icons.info_outline),
-                                label: const Text('Ver detalles'),
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.green[800],
-                                  foregroundColor: Colors.white,
-                                  shape: const StadiumBorder(),
-                                  minimumSize:
-                                      const Size(double.infinity, 48),
+                                child: Padding(
+                                  padding: const EdgeInsets.all(12),
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Row(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.spaceBetween,
+                                        children: [
+                                          Text(
+                                            rutina.nombre,
+                                            style: const TextStyle(
+                                              fontWeight: FontWeight.bold,
+                                              fontSize: 18,
+                                            ),
+                                          ),
+                                          Chip(
+                                            backgroundColor:
+                                                _obtenerColorNivel(rutina.tipo),
+                                            label: Text(
+                                              rutina.tipo,
+                                              style: const TextStyle(
+                                                  color: Colors.white),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                      const SizedBox(height: 8),
+                                      Text(rutina.descripcion),
+                                      const SizedBox(height: 10),
+                                      rutina.imagen != null &&
+                                              rutina.imagen!.isNotEmpty
+                                          ? ClipRRect(
+                                              borderRadius:
+                                                  BorderRadius.circular(10),
+                                              child: Image.network(
+                                                rutina.imagen!,
+                                                height: 160,
+                                                width: double.infinity,
+                                                fit: BoxFit.cover,
+                                                errorBuilder: (_, __, ___) =>
+                                                    Container(
+                                                  height: 160,
+                                                  color: Colors.grey[200],
+                                                  child: const Icon(
+                                                      Icons.fitness_center,
+                                                      size: 50),
+                                                ),
+                                              ),
+                                            )
+                                          : Container(
+                                              height: 160,
+                                              decoration: BoxDecoration(
+                                                color: Colors.grey[300],
+                                                borderRadius:
+                                                    BorderRadius.circular(10),
+                                              ),
+                                              child: const Icon(
+                                                  Icons.fitness_center,
+                                                  size: 50),
+                                            ),
+                                      const SizedBox(height: 8),
+                                      ElevatedButton.icon(
+                                        onPressed: () {
+                                          Navigator.push(
+                                            context,
+                                            MaterialPageRoute(
+                                              builder: (context) =>
+                                                  DetalleRutinaScreen(
+                                                      rutina: rutinaDetalle),
+                                            ),
+                                          );
+                                        },
+                                        icon: const Icon(Icons.info_outline),
+                                        label: const Text('Ver detalles'),
+                                        style: ElevatedButton.styleFrom(
+                                          backgroundColor: Colors.green[800],
+                                          foregroundColor: Colors.white,
+                                          shape: const StadiumBorder(),
+                                          minimumSize: const Size(
+                                              double.infinity, 48),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
                                 ),
                               ),
-                            ],
-                          ),
+                            );
+                          },
                         ),
-                      ),
-                    );
-                  },
                 ),
+              ],
+            ),
       bottomNavigationBar: HealthuBottomNavBar(
         currentIndex: _selectedIndex,
         onTap: _onTap,

@@ -34,18 +34,14 @@ class _HomeScreenState extends State<HomeScreen> {
     Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false);
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Bienvenido a HEALTHU'),
-        backgroundColor: Colors.green,
-      ),
-      body: IndexedStack(index: _selectedIndex, children: _screens),
-      bottomNavigationBar: HealthuBottomNavBar(
-        currentIndex: _selectedIndex,
-        onTap: _onTap,
-      ),
-    );
-  }
+@override
+Widget build(BuildContext context) {
+  return Scaffold(
+    body: IndexedStack(index: _selectedIndex, children: _screens),
+    bottomNavigationBar: HealthuBottomNavBar(
+      currentIndex: _selectedIndex,
+      onTap: _onTap,
+    ),
+  );
+}
 }

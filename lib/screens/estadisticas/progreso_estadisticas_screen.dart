@@ -19,7 +19,7 @@ class _ProgresoEstadisticasScreenState extends State<ProgresoEstadisticasScreen>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 3, vsync: this);
+    _tabController = TabController(length: 2, vsync: this);
     _cargarEstadisticas();
   }
 
@@ -148,7 +148,6 @@ class _ProgresoEstadisticasScreenState extends State<ProgresoEstadisticasScreen>
           tabs: const [
             Tab(icon: Icon(Icons.dashboard), text: 'Resumen'),
             Tab(icon: Icon(Icons.show_chart), text: 'Gráficas'),
-            Tab(icon: Icon(Icons.emoji_events), text: 'Logros'),
           ],
         ),
       ),
@@ -161,7 +160,6 @@ class _ProgresoEstadisticasScreenState extends State<ProgresoEstadisticasScreen>
                   children: [
                     _buildResumenTab(),
                     _buildGraficasTab(),
-                    _buildLogrosTab(),
                   ],
                 ),
     );
@@ -283,13 +281,6 @@ class _ProgresoEstadisticasScreenState extends State<ProgresoEstadisticasScreen>
       ),
     );
   }
-
-  Widget _buildLogrosTab() {
-    return const Center(
-      child: Text("🏆 Próximamente logros dinámicos"),
-    );
-  }
-
   Widget _buildStatCard(
       String title, String value, IconData icon, Color color) {
     return Card(

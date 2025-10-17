@@ -1,32 +1,39 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:healthu/services/login_service.dart';
 import 'package:healthu/services/usuario_service.dart';
 import 'package:healthu/screens/home inicio/home_screen.dart';
+import 'package:healthu/widgets/login_widgets.dart'; // ✅ ahora viene de la carpeta widgets
 import 'package:jwt_decoder/jwt_decoder.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+
 class Login extends StatefulWidget {
   const Login({super.key});
-
   @override
   State<Login> createState() => _LoginState();
 }
 
-class _LoginState extends State<Login> {
-  final TextEditingController usuarioCtrl = TextEditingController();
-  final TextEditingController claveCtrl = TextEditingController();
+class _LoginState extends State<Login> with SingleTickerProviderStateMixin {
+  final usuarioCtrl = TextEditingController();
+  final claveCtrl = TextEditingController();
   bool _obscureText = true;
+
+  late final AnimationController _controller =
+      AnimationController(vsync: this, duration: const Duration(milliseconds: 900))..forward();
+  late final Animation<double> _fadeAnim =
+      CurvedAnimation(parent: _controller, curve: Curves.easeInOut);
 
   @override
   void dispose() {
     usuarioCtrl.dispose();
     claveCtrl.dispose();
+    _controller.dispose();
     super.dispose();
   }
 
-  /// 🔹 Mapea la dificultad que viene del backend a un nivel más amigable
-  String _mapNivel(String? dificultad) {
-    switch (dificultad?.toLowerCase()) {
+  String _mapNivel(String? d) {
+    switch (d?.toLowerCase()) {
       case 'principiante':
         return 'Básico';
       case 'intermedio':
@@ -38,170 +45,72 @@ class _LoginState extends State<Login> {
     }
   }
 
+  void _mostrarError(String msg) => ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          backgroundColor: Colors.redAccent,
+          content: Row(children: [
+            const Icon(Icons.error_outline, color: Colors.white),
+            const SizedBox(width: 8),
+            Expanded(child: Text(msg)),
+          ]),
+        ),
+      );
+
   Future<void> _iniciarSesion() async {
     final email = usuarioCtrl.text.trim();
     final contrasena = claveCtrl.text.trim();
-
     final token = await LoginService().login(email, contrasena);
 
     if (!mounted) return;
+    if (token == null) return _mostrarError("Correo o contraseña incorrectos");
 
-    if (token != null) {
-      try {
-        // ✅ Decodificar token
-        Map<String, dynamic> decoded = JwtDecoder.decode(token);
-        debugPrint("✅ JWT payload: $decoded");
+    try {
+      final decoded = JwtDecoder.decode(token);
+      final prefs = await SharedPreferences.getInstance();
+      await prefs
+        ..setString('token', token)
+        ..setString('id_usuario', decoded['id_usuario'].toString())
+        ..setString('id_persona', decoded['id_persona'].toString())
+        ..setString('fotoPerfil', decoded['foto'] ?? '')
+        ..setString('nombre_usuario', decoded['nombre_usuario'] ?? '')
+        ..setString('email', decoded['sub'] ?? '');
 
-        // Guardar token y datos mínimos en SharedPreferences
-        final prefs = await SharedPreferences.getInstance();
-        await prefs.setString('token', token);
-        await prefs.setString('id_usuario', decoded['id_usuario'].toString());
-        await prefs.setString('id_persona', decoded['id_persona'].toString());
-        await prefs.setString('fotoPerfil', decoded['foto'] ?? '');
-        await prefs.setString('nombre_usuario', decoded['nombre_usuario'] ?? '');
-        await prefs.setString('email', decoded['sub'] ?? '');
+      final usuario = await UsuarioService.obtenerUsuarioConNivel();
+      if (usuario == null) return _mostrarError("Error al obtener datos del usuario");
 
-        if (!mounted) return;
-
-        // 🔹 Llamamos al endpoint /rutina/porAprendiz para traer nivel real
-        final usuario = await UsuarioService.obtenerUsuarioConNivel();
-
-        if (usuario != null) {
-          // Mapear dificultad a nivel actual
-          final nivelMapped = _mapNivel(usuario.nivelActual);
-          final usuarioConNivel = usuario.copyWith(nivelActual: nivelMapped);
-
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(
-              builder: (_) =>
-                  HomeScreen(usuario: usuarioConNivel, indiceInicial: 2),
-            ),
-          );
-        } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text("Error al obtener datos del usuario")),
-          );
-        }
-      } catch (e, st) {
-        debugPrint("❌ Error al procesar token o nivel: $e");
-        debugPrint("StackTrace: $st");
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Error al procesar datos de sesión")),
-        );
-      }
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Error al iniciar sesión")),
+      final mapped = usuario.copyWith(nivelActual: _mapNivel(usuario.nivelActual));
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => HomeScreen(usuario: mapped, indiceInicial: 2)),
       );
+    } catch (_) {
+      _mostrarError("Error al procesar datos de sesión");
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final alto = MediaQuery.of(context).size.height;
+    final ancho = MediaQuery.of(context).size.width;
+
     return Scaffold(
-      backgroundColor: Colors.grey[100],
-      appBar: AppBar(
-        title: const Text('Iniciar sesión'),
-        backgroundColor: Colors.green,
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(24),
-        child: AutofillGroup(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              // 🔹 Aquí reemplazamos el ícono por el logo
-              Image.asset(
-                'assets/images/healthu_logo.png',
-                height: 180,
-                fit: BoxFit.contain,
-              ),
-              const SizedBox(height: 20),
-              const Text(
-                'Bienvenido a HEALTHU',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 26,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.green,
-                ),
-              ),
-              const SizedBox(height: 30),
-              TextField(
-                controller: usuarioCtrl,
-                autofillHints: const [AutofillHints.username],
-                decoration: InputDecoration(
-                  labelText: 'Correo electrónico',
-                  prefixIcon: const Icon(Icons.person),
-                  filled: true,
-                  fillColor: Colors.white,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 16),
-              TextField(
-                controller: claveCtrl,
+      resizeToAvoidBottomInset: true,
+      body: FadeTransition(
+        opacity: _fadeAnim,
+        child: Column(
+          children: [
+            LoginHeader(alto: alto),
+            Expanded(
+              child: LoginForm(
+                ancho: ancho,
+                usuarioCtrl: usuarioCtrl,
+                claveCtrl: claveCtrl,
                 obscureText: _obscureText,
-                autofillHints: const [AutofillHints.password],
-                decoration: InputDecoration(
-                  labelText: 'Contraseña',
-                  prefixIcon: const Icon(Icons.lock),
-                  suffixIcon: IconButton(
-                    icon: Icon(
-                      _obscureText ? Icons.visibility_off : Icons.visibility,
-                    ),
-                    onPressed: () {
-                      setState(() {
-                        _obscureText = !_obscureText;
-                      });
-                    },
-                  ),
-                  filled: true,
-                  fillColor: Colors.white,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
+                onTogglePassword: () => setState(() => _obscureText = !_obscureText),
+                onLogin: _iniciarSesion,
               ),
-              const SizedBox(height: 24),
-              ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.green,
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                ),
-                onPressed: _iniciarSesion,
-                child: const Text(
-                  'Iniciar sesión',
-                  style: TextStyle(fontSize: 16, color: Colors.white),
-                ),
-              ),
-              const SizedBox(height: 20),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Text('¿No tienes cuenta?'),
-                  TextButton(
-                    onPressed: () {
-                      Navigator.pushNamed(context, '/registro');
-                    },
-                    child: const Text(
-                      'Regístrate ahora',
-                      style: TextStyle(
-                        color: Colors.green,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                ],
-              )
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );

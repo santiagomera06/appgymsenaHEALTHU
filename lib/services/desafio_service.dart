@@ -27,42 +27,42 @@ static Future<Map<String, dynamic>?> obtenerDesafioActual() async {
   try {
     final headers = await _getAuthHeaders();
 
-    // ✅ Construimos la URL
+    //  Construimos la URL
     final url = ApiConfig.getUrl('/desafios/obtenerDesafioActual');
-    print("➡️ Intentando consumir: $url");
-    print("➡️ Headers: $headers");
+    print(" Intentando consumir: $url");
+    print("Headers: $headers");
 
     final response = await http
         .get(Uri.parse(url), headers: headers)
         .timeout(const Duration(seconds: 60));
 
-    print("⬅️ Status: ${response.statusCode}");
-    print("⬅️ Response body: ${response.body}");
+    print("⬅ Status: ${response.statusCode}");
+    print("⬅ Response body: ${response.body}");
 
     if (response.statusCode == 200) {
       final data = json.decode(response.body);
 
       // 👇 Log extra para calorías si están presentes
       if (data is Map && data.containsKey("caloriasTotales")) {
-        print("🔥 Calorías totales recibidas: ${data['caloriasTotales']}");
+        print(" Calorías totales recibidas: ${data['caloriasTotales']}");
       } else {
-        print("⚠️ Este endpoint no trae caloríasTotales");
+        print(" Este endpoint no trae caloríasTotales");
       }
 
       return data;
     } else {
-      print('❌ Error obtenerDesafioActual: ${response.statusCode}');
+      print(' Error obtenerDesafioActual: ${response.statusCode}');
       return null;
     }
   } catch (e) {
-    print('❌ Error al obtener desafío actual: $e');
+    print(' Error al obtener desafío actual: $e');
     return null;
   }
 }
 
 
 
-/// 🔹 Nuevo método para traer lista de desafíos del usuario
+///  Nuevo método para traer lista de desafíos del usuario
 static Future<List<Map<String, dynamic>>> obtenerDesafiosPorUsuario() async {
   try {
     final headers = await _getAuthHeaders();
